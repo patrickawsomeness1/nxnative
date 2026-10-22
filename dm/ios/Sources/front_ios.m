@@ -71,7 +71,10 @@ static CAMetalLayer *g_layer;
 - (BOOL)prefersStatusBarHidden { return YES; }
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations { return UIInterfaceOrientationMaskLandscape; }
 @end
-UIViewController *front_ios_root(void) { return [DmRootVC new]; }
+// The pre-launch screen owns the window until the user presses Start Game.
+UIViewController *dm_launch_root(void);
+UIViewController *front_ios_game_root(void) { return [DmRootVC new]; }
+UIViewController *front_ios_root(void) { return dm_launch_root(); }
 
 void *front_metal_layer(void) { return (__bridge void *)g_layer; }
 uint64_t front_game_res(int docked) { return docked ? 900ull << 32 | 1600 : 720ull << 32 | 1280; }   // Same as Mac: the original 16:9 constants
