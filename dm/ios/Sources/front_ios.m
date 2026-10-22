@@ -77,7 +77,18 @@ UIViewController *front_ios_game_root(void) { return [DmRootVC new]; }
 UIViewController *front_ios_root(void) { return dm_launch_root(); }
 
 void *front_metal_layer(void) { return (__bridge void *)g_layer; }
-uint64_t front_game_res(int docked) { return docked ? 900ull << 32 | 1600 : 720ull << 32 | 1280; }   // Same as Mac: the original 16:9 constants
+// Match the Mac front end's existing DM_GAME_RES option. The game may choose
+// different internal render resolutions, so this is a target rather than an FPS guarantee.
+uint64_t front_game_res(int docked) {
+    unsigned w = 0, h = 0;
+    const char *e = getenv("DM_GAME_RES");
+    if (e && sscanf(e, "%ux%u", &w, &h) == 2 && w >= 640 && h >= 360 &&
+        w <= 3840 && h <= 2160 && (uint64_t)w * 9 == (uint64_t)h * 16) {
+        if (docked) return (uint64_t)h << 32 | w;
+        return (uint64_t)(h * 4 / 5) << 32 | (w * 4 / 5 + 3) / 4 * 4;
+    }
+    return docked ? 900ull << 32 | 1600 : 720ull << 32 | 1280;
+}
 void front_run(void (*guest)(void)) { guest(); }   // Already on main.m's big-stack thread
 
 // Software keyboard: show a UIAlertController on the main thread, the calling thread waits for the result
