@@ -9,11 +9,9 @@ UIViewController *front_ios_game_root(void);
 int front_ios_boot_ok(void);
 
 static NSString *const kPreset = @"DmLaunchGraphicsPreset";
-static NSString *const kAdaptive = @"DmLaunchAdaptiveResolution";
 
 @interface DmLaunchViewController : UIViewController
 @property(nonatomic, strong) UISegmentedControl *preset;
-@property(nonatomic, strong) UISwitch *adaptive;
 @property(nonatomic, strong) UILabel *presetDescription;
 @end
 
@@ -76,23 +74,8 @@ static UILabel *dmLabel(NSString *text, CGFloat size, BOOL heavy, UIColor *color
     self.presetDescription = dmLabel(@"", 14, NO, [UIColor colorWithWhite:0.78 alpha:1]);
     [stack addArrangedSubview:self.presetDescription];
 
-    UIStackView *resolutionRow = [UIStackView new];
-    resolutionRow.axis = UILayoutConstraintAxisHorizontal;
-    resolutionRow.alignment = UIStackViewAlignmentCenter;
-    resolutionRow.spacing = 12;
-    UILabel *adaptTitle = dmLabel(@"Adaptive 3D resolution", 16, NO, UIColor.whiteColor);
-    [resolutionRow addArrangedSubview:adaptTitle];
-    self.adaptive = [UISwitch new];
-    NSNumber *savedAdaptive = [NSUserDefaults.standardUserDefaults objectForKey:kAdaptive];
-    self.adaptive.on = savedAdaptive ? savedAdaptive.boolValue : YES;
-    [self.adaptive addTarget:self action:@selector(adaptiveChanged:) forControlEvents:UIControlEventValueChanged];
-    [resolutionRow addArrangedSubview:self.adaptive];
-    [stack addArrangedSubview:resolutionRow];
-
-    [stack addArrangedSubview:dmLabel(@"The current renderer can lower its internal resolution when frames are slow. The performance preset also uses handheld mode.",
-                                       13, NO, [UIColor colorWithWhite:0.67 alpha:1])];
-
     [stack addArrangedSubview:dmLabel(@"Upcoming rendering features", 18, YES, UIColor.whiteColor)];
+    [self addPlanned:@"Adaptive internal resolution" detail:@"The existing adaptive 3D scaler is game-build-specific and is not validated for Zelda." to:stack];
     [self addPlanned:@"MetalFX Spatial Upscaling" detail:@"Needs a MetalFX scaler in the presentation pipeline." to:stack];
     [self addPlanned:@"MetalFX Temporal Upscaling" detail:@"Needs frame color, depth and motion-vector integration." to:stack];
     [self addPlanned:@"MetalFX Frame Generation" detail:@"Requires temporal rendering data and correct frame presentation." to:stack];
@@ -120,13 +103,13 @@ static UILabel *dmLabel(NSString *text, CGFloat size, BOOL heavy, UIColor *color
 - (void)updatePresetDescription {
     switch (self.preset.selectedSegmentIndex) {
         case 0:
-            self.presetDescription.text = @"Handheld mode • 50% maximum 3D scale • prioritize GPU headroom";
+            self.presetDescription.text = @"Handheld mode • lower output resolution • prioritize GPU headroom";
             break;
         case 2:
-            self.presetDescription.text = @"Docked mode • 100% maximum 3D scale • highest GPU demand";
+            self.presetDescription.text = @"Docked mode • 1600 × 900 output • highest GPU demand";
             break;
         default:
-            self.presetDescription.text = @"Handheld mode • 75% maximum 3D scale • balanced clarity and speed";
+            self.presetDescription.text = @"Handheld mode • standard 1280 × 720 output • balanced clarity and speed";
             break;
     }
 }
@@ -135,21 +118,17 @@ static UILabel *dmLabel(NSString *text, CGFloat size, BOOL heavy, UIColor *color
     [NSUserDefaults.standardUserDefaults setInteger:sender.selectedSegmentIndex forKey:kPreset];
     [self updatePresetDescription];
 }
-- (void)adaptiveChanged:(UISwitch *)sender {
-    [NSUserDefaults.standardUserDefaults setBool:sender.on forKey:kAdaptive];
-}
 - (void)startGame:(UIButton *)sender {
     sender.enabled = NO;
     NSInteger mode = self.preset.selectedSegmentIndex;
-    const char *scale = mode == 0 ? "0.5" : mode == 2 ? "1.0" : "0.75";
+    const char *resolution = mode == 0 ? "1280x720" : "1600x900";
     const char *opmode = mode == 2 ? "1" : "0";
-    // These three environment keys are implemented in dm/host/hle_oe.c.
+    // Operation mode is implemented in hle_oe.c; front_ios.m reads DM_GAME_RES.
     // Apply them before any guest or host preload thread is started.
     setenv("DM_OPMODE", opmode, 1);
-    setenv("DM_3D_SCALE", scale, 1);
-    setenv("DM_3D_SCALE_DYN", self.adaptive.on ? "1" : "0", 1);
-    fprintf(stderr, "launcher: preset=%ld opmode=%s scale=%s adaptive=%d\n",
-            (long)mode, opmode, scale, self.adaptive.on);
+    setenv("DM_GAME_RES", resolution, 1);
+    fprintf(stderr, "launcher: preset=%ld opmode=%s output=%s\n",
+            (long)mode, opmode, resolution);
     UIWindow *window = self.view.window;
     if (window) window.rootViewController = front_ios_game_root();
     else sender.enabled = YES;
