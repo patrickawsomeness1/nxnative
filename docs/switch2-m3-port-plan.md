@@ -25,7 +25,7 @@ Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 pat
 
 The shared `dm/tools/nso.py` reader has been upgraded to the upstream validated implementation: segment bounds, optional segment SHA-256 checks, LZ4, and ZBIC (the Switch 2-era NSO compression mode) are handled before image allocation. The existing offline rewriter now consumes this reader rather than assuming LZ4-only NSO input.
 
-A new read-only `dm/tools/switch2_survey.py` reports NSO flags (including XOM and ZBIC), module IDs, segment layout, and static AArch64 PAC/authentication, BTI, SVC, LSE atomic, and selected system-register instruction observations. Synthetic tests and CI are being added for these behaviours.
+A new read-only `dm/tools/switch2_survey.py` reports NSO flags (including XOM and ZBIC), module IDs, segment layout, and static AArch64 PAC/authentication, BTI, SVC, LSE atomic, and selected system-register instruction observations. Synthetic tests for NSO bounds, hashes, ZBIC error handling, dynamic imports, PAC, BTI, SVC numbers, and the Switch 2/XOM rewriter safety guards now pass in GitHub Actions. The iOS bring-up app also contains signed-in-app PACIA/AUTIA and BTI instructions to probe the Apple host CPU; that test is compiled in CI but still needs a physical-device run.
 
 **Important:** the rewriter still applies the original Switch 1 thread-register/SVC/timer transformations. Parsing a Switch 2 NSO is not the same as executing it. PAC/XOM behaviour, Switch 2 SVC and IPC semantics, and NVN2 remain unimplemented until verified.
 
