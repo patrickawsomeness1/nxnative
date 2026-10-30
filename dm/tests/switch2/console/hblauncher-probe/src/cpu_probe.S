@@ -66,10 +66,3 @@ nx_probe_lse_add:
     ret
 .size nx_probe_lse_add, .-nx_probe_lse_add
 
-.p2align 2
-.global nx_probe_cntfrq
-.type nx_probe_cntfrq, %function
-nx_probe_cntfrq:
-    mrs x0, cntfrq_el0
-    ret
-.size nx_probe_cntfrq, .-nx_probe_cntfrq
