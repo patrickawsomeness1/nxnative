@@ -4,7 +4,7 @@ This package is built against the public [HBLauncher Native SDK](https://github.
 
 ## What it checks
 
-The host selects a stage through `ctx->args[1]`; the app writes the last completed stage to `ctx->args[2]` and the marker `NXP2` to `ctx->frame`.
+The host may select a maximum stage through `ctx->args[1]` (1–8); zero runs the complete probe. The app writes the last completed stage to `ctx->args[2]` and the marker `NXP2` to `ctx->frame`.
 
 | Stage | Operation |
 | ---: | --- |
