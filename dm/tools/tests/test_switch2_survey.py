@@ -14,7 +14,7 @@ import switch2_survey
 
 
 def make_nso(flags=0x40 | 0x38):
-    text = struct.pack("<IIII", 0xD503233F, 0xD503245F, 0xD4001001, 0xD65F03C0)  # paciasp; bti c; svc #0x80; ret
+    text = struct.pack("<IIIII", 0xD503233F, 0xD503245F, 0xD4001001, 0xD65F03C0, 0xD53B0020)  # paciasp; bti c; svc #0x80; ret; mrs x0, ctr_el0
     ro = bytearray(0x1000)
     import_one = b"nn::os::CreateThread"
     import_two = b"nn::vi::OpenDisplay"
@@ -51,6 +51,7 @@ class Switch2SurveyTests(unittest.TestCase):
         self.assertEqual(report["aarch64_text_scan"]["instruction_counts"]["bti"], 1)
         self.assertEqual(report["aarch64_text_scan"]["instruction_counts"]["svc"], 1)
         self.assertEqual(report["aarch64_text_scan"]["svc_numbers"], {"0x80": 1})
+        self.assertEqual(report["aarch64_text_scan"]["system_register_accesses"]["ctr_el0"], 1)
         self.assertTrue(report["dynamic_symbols"]["available"], report["dynamic_symbols"])
         self.assertEqual(
             [item["name"] for item in report["dynamic_symbols"]["undefined_imports"]],
