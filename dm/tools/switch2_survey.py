@@ -16,9 +16,9 @@ import nso
 
 
 PAC = ("pac", "aut", "xpac")
-PAC_BRANCH = ("braa", "brab", "blraa", "blrab", "retaa", "retab")
-LSE = ("cas", "casa", "casal", "casl", "swp", "ldadd", "ldclr", "ldeor", "ldset",
-       "ldsmax", "ldsmin", "ldumax", "ldumin")
+PAC_BRANCH = ("braa", "brab", "blraa", "blrab", "braaz", "brabz", "blraaz", "blrabz", "retaa", "retab")
+LSE_PREFIXES = ("cas", "swp", "ldadd", "ldclr", "ldeor", "ldset",
+                "ldsmax", "ldsmin", "ldumax", "ldumin")
 SYSREGS = ("tpidr_el0", "tpidrro_el0", "tpidr2_el0", "cntpct_el0",
            "cntvct_el0", "cntfrq_el0", "cntvoff_el2", "ctr_el0")
 
@@ -114,7 +114,7 @@ def survey(path: Path) -> dict:
             svc_numbers[key] = svc_numbers.get(key, 0) + 1
             if len(samples["svc"]) < 64:
                 samples["svc"].append(item)
-        if mnemonic.startswith(LSE):
+        if mnemonic.startswith(LSE_PREFIXES):
             counts["lse_atomic"] += 1
         if mnemonic in ("mrs", "msr"):
             for register in SYSREGS:
