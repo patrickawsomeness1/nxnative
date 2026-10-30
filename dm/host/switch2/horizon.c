@@ -94,3 +94,61 @@ nx_horizon_status nx_horizon_cmif_dispatch(
     *cmif_response_size = NX_CMIF_HEADER_SIZE + payload_size;
     return NX_HORIZON_OK;
 }
+
+
+nx_horizon_status nx_horizon_open_session(
+    nx_horizon_context *ctx, const char *service_name, uint32_t *out_handle) {
+    if (out_handle) *out_handle = 0;
+    if (!ctx || !service_name || !out_handle) return NX_HORIZON_E_ARGUMENT;
+    size_t service_index = ctx->service_count;
+    for (size_t i = 0; i < ctx->service_count; ++i) {
+        if (strcmp(ctx->services[i].name, service_name) == 0) {
+            service_index = i;
+            break;
+        }
+    }
+    if (service_index == ctx->service_count) return NX_HORIZON_E_NOT_FOUND;
+    for (size_t i = 0; i < NX_HORIZON_MAX_SESSIONS; ++i) {
+        nx_horizon_session *session = &ctx->sessions[i];
+        if (session->active) continue;
+        uint32_t handle = ctx->next_session_handle++;
+        if (handle == 0) handle = ctx->next_session_handle++;
+        session->handle = handle;
+        session->service_index = (uint16_t)service_index;
+        session->active = 1;
+        *out_handle = handle;
+        return NX_HORIZON_OK;
+    }
+    return NX_HORIZON_E_CAPACITY;
+}
+
+nx_horizon_status nx_horizon_close_session(nx_horizon_context *ctx, uint32_t handle) {
+    if (!ctx || handle == 0) return NX_HORIZON_E_ARGUMENT;
+    for (size_t i = 0; i < NX_HORIZON_MAX_SESSIONS; ++i) {
+        nx_horizon_session *session = &ctx->sessions[i];
+        if (session->active && session->handle == handle) {
+            memset(session, 0, sizeof(*session));
+            return NX_HORIZON_OK;
+        }
+    }
+    return NX_HORIZON_E_NOT_FOUND;
+}
+
+nx_horizon_status nx_horizon_session_cmif_dispatch(
+    nx_horizon_context *ctx, uint32_t handle,
+    const uint8_t *request, size_t request_size,
+    uint8_t *response, size_t response_capacity, size_t *response_size) {
+    if (response_size) *response_size = 0;
+    if (!ctx || handle == 0 || !response_size) return NX_HORIZON_E_ARGUMENT;
+    for (size_t i = 0; i < NX_HORIZON_MAX_SESSIONS; ++i) {
+        nx_horizon_session *session = &ctx->sessions[i];
+        if (session->active && session->handle == handle) {
+            if (session->service_index >= ctx->service_count)
+                return NX_HORIZON_E_NOT_FOUND;
+            return nx_horizon_cmif_dispatch(ctx,
+                ctx->services[session->service_index].name,
+                request, request_size, response, response_capacity, response_size);
+        }
+    }
+    return NX_HORIZON_E_NOT_FOUND;
+}
