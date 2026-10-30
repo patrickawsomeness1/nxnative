@@ -44,6 +44,22 @@ References:
 - [Apple Developer: JIT and MAP_JIT requirements](https://developer.apple.com/documentation/BundleResources/Entitlements/com.apple.security.cs.allow-jit)
 - [Apple mandatory code signing on iOS/iPadOS](https://support.apple.com/en-us/guide/security/sec7c917bf14/web)
 
+
+## What current Switch 2 research does and does not establish
+
+- Nintendo's public specification describes a custom NVIDIA processor. Switchbrew's reverse-engineered T239 notes identify eight 64-bit Arm Cortex-A78C cores, 12 GB LPDDR5X, an Ampere GPU, and PAC support. This is useful architectural evidence, not an official Nintendo SDK/ABI specification.
+- Switchbrew's compatibility-mode notes describe `nnCompatTrampoline`, `nnCompatThin`, and `nnCompat` being injected when an **original Switch 1 game** runs on Switch 2. This explains the backwards-compatibility path; it does not establish that a native Switch 2 retail title uses the same loader, SDK libraries, executable layout, or NVN2 ABI as Switch 1.
+- Public ns2jb/HBLauncher material is an early, tethered userland proof of concept. It is not a kernel-level custom firmware or a retail Switch 2 game loader. Its Vulkan app interface is not NVN2. It must not be used as the basis for the iOS runtime.
+- Public Switch 2 extraction tooling is experimental and does not by itself provide the full runtime ABI, keys, or graphics implementation required by nxnative.
+
+Research references:
+- [Switch 2 T239 hardware notes](https://switchbrew.org/wiki/Switch_2%3A_Tegra_T239)
+- [Switch 2 compatibility mode](https://switchbrew.org/wiki/Switch_2%3A_Compatibility_Mode)
+- [Switch 2 research tools status](https://switch2unlock.com/en/tools/)
+- [Nintendo official Switch 2 specifications](https://www.nintendo.com/gaming-systems/switch-2/tech-specs/)
+
+These sources support a native ARM64 research direction, but they do not yet provide a verified Switch 2 retail executable loader contract or NVN2 implementation specification. Those must be measured from an authorized self-built test program or authoritative SDK documentation.
+
 ## First implementation milestones
 
 ### A. Host ISA and ABI probe
