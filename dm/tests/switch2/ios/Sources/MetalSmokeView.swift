@@ -62,6 +62,7 @@ final class MetalSmokeRenderer: NSObject, ObservableObject, MTKViewDelegate {
         xomStatus = xomResult == 1
             ? "Signed-page execute-only remap passed"
             : "Execute-only remap unavailable (probe \(xomResult))"
+        lseStatus = nx_lse_smoke() == 1 ? "LDADDAL atomic test passed" : "LSE atomic instruction unavailable or incorrect"
         maxBufferLength = selectedDevice.map { ByteCountFormatter.string(fromByteCount: Int64($0.maxBufferLength), countStyle: .memory) } ?? "—"
         if let selectedDevice {
             workingSet = ByteCountFormatter.string(fromByteCount: Int64(selectedDevice.recommendedMaxWorkingSetSize), countStyle: .memory)
