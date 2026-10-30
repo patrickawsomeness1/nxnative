@@ -18,19 +18,31 @@ Sources:
 4. **Host services:** Map controller input, audio, filesystem access, timing, and app lifecycle to public iOS/iPadOS APIs.
 5. **One runtime, two device profiles:** Share the guest compatibility code, but query Metal limits, memory budget, display, thermal state, and available CPU features at runtime on M3 iPad Air and A19 Pro iPhone 17 Pro Max.
 
-## Critical iOS execution constraint
+## How nxnative already solves native execution on iOS
 
-A normal iOS/iPadOS app cannot assume it may load arbitrary user-imported ARM64 binaries as executable code. Apple enforces code signing and non-executable writable memory. Apple documents that executable/writable pages and JIT are restricted to tightly controlled, specially entitled cases; third-party apps cannot grant themselves Apple's private dynamic-code-signing entitlement.
+The upstream nxnative codebase already has a concrete no-JIT native-execution pipeline for original Switch modules. We should adapt that mechanism rather than invent a JIT or an emulator:
+
+1. `dm/tools/patch_nso.py` expands and rewrites a Switch AArch64 NSO offline. It adjusts platform-specific register/thread-local conventions, SVC/timer entry points, and other measured incompatibilities, and emits a patched image plus fixup/gate metadata.
+2. `dm/ios/tools/gen_embed.py` emits assembly that embeds the guest's executable text and patch blocks into the app's single signed `__TEXT` segment. Writable data is emitted in a separate RW segment.
+3. The complete app is linked and signed as one iOS executable. The guest text is therefore part of the app's signed code image before installation; it is not arbitrary unsigned code downloaded into executable memory at runtime.
+4. The iOS branch of `dm/host/loader.c` reserves the guest's address range and uses `vm_remap` to map the signed executable pages back at their expected guest-relative addresses, sharing the signed RX pages, while data is mapped copy-on-write. Relocations and guest thread-local slots are then initialized.
+5. Guest ARM64 functions execute directly on the Apple CPU. Horizon kernel/services are supplied by the host compatibility layer, while the graphics interface is handled separately by the Metal backend.
+
+This is the native execution model required for the Switch 2 port. It is not a CPU interpreter and it does not need a general JIT. The key constraint is that all executable guest code and any offline-generated patches must be embedded and signed before installation. A game update or newly imported executable requires rebuilding/re-signing the app or its signed guest-code container; simply selecting an arbitrary file in Files cannot make it executable.
+
+Relevant implementation files in this repository:
+- `dm/tools/patch_nso.py`
+- `dm/ios/tools/gen_embed.py`
+- `dm/ios/tools/build_ipa.sh`
+- `dm/host/loader.c` (iOS `vm_remap` path)
+- `dm/host/hle_svc.c` and the other `dm/host/hle_*.c` service implementations
+
+Apple requires executable code to be signed and restricts writable/executable memory. We deliberately preserve nxnative's signed-code-section approach instead of depending on a private entitlement or unrestricted JIT.
 
 References:
 - [Apple Platform Security: runtime process security](https://support.apple.com/guide/security/security-of-runtime-process-sec15bfe098e/web)
 - [Apple Developer: JIT and MAP_JIT requirements](https://developer.apple.com/documentation/BundleResources/Entitlements/com.apple.security.cs.allow-jit)
-
-Therefore the native-execution design has a platform gate which must be resolved before promising arbitrary game-file execution:
-
-- **No-JIT / ordinary signed IPA:** use a per-title offline native packaging or ahead-of-time translation process on a Mac, then include the resulting code in an app that is signed as a whole before installation. This is not a universal drop-in loader; dynamic modules, relocations, code generation, and runtime patching must be handled by the build pipeline.
-- **JIT-capable development environment:** only pursue this as a separate experimental configuration if the actual device, signing method, OS version, and legally available entitlement demonstrably permit executable guest pages. Never assume a public App Store entitlement.
-- **Fallback:** if neither path is available, the product cannot truthfully claim direct native execution of arbitrary imported game binaries on stock iOS. A CPU interpreter would be a different architecture and must not silently replace the requested design.
+- [Apple mandatory code signing on iOS/iPadOS](https://support.apple.com/en-us/guide/security/sec7c917bf14/web)
 
 ## First implementation milestones
 
@@ -55,7 +67,7 @@ Run the self-built test to completion and present a rendered frame on both Apple
 ## Scope of existing bring-up artifacts
 
 - The SwiftUI/Metal dashboard is only an Apple GPU smoke test.
-- The NRO/NSO/ELF reader is metadata inspection only. NRO/NSO are original Switch formats; they are not a Switch 2 loader.
+- The NRO/NSO/ELF reader is metadata inspection only; it is not the Switch 2 loader. The actual nxnative native-execution pipeline is the offline NSO rewriter, signed code embedding, and iOS `vm_remap` loader described above.
 - The HBLauncher probe is an optional, separate console-side diagnostic built for that launcher's own ABI. It is not the Switch 2 runtime and must not define the product architecture.
 - None of these artifacts currently executes Switch 2 guest code.
 
