@@ -26,5 +26,6 @@ targets:
         INFOPLIST_KEY_UIUserInterfaceStyle: Dark
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1,2"
+        OTHER_CFLAGS: "$(inherited) -march=armv8.3-a"
         SUPPORTS_MACCATALYST: NO
         CODE_SIGN_STYLE: Automatic
