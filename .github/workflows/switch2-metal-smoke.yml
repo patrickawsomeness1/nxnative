@@ -75,7 +75,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install parser dependencies
-        run: python -m pip install "capstone>=5,<6" lz4
+        run: python -m pip install "capstone>=5,<6" lz4 zbic
 
       - name: Test validated NSO loader and Switch 2 survey
         run: |
