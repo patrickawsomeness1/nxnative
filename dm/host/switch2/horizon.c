@@ -111,8 +111,21 @@ nx_horizon_status nx_horizon_open_session(
     for (size_t i = 0; i < NX_HORIZON_MAX_SESSIONS; ++i) {
         nx_horizon_session *session = &ctx->sessions[i];
         if (session->active) continue;
-        uint32_t handle = ctx->next_session_handle++;
-        if (handle == 0) handle = ctx->next_session_handle++;
+        uint32_t handle = 0;
+        // Skip zero and any still-live handle if the counter wraps.
+        for (size_t attempt = 0; attempt <= NX_HORIZON_MAX_SESSIONS; ++attempt) {
+            uint32_t candidate = ctx->next_session_handle++;
+            if (candidate == 0) continue;
+            int in_use = 0;
+            for (size_t j = 0; j < NX_HORIZON_MAX_SESSIONS; ++j) {
+                if (ctx->sessions[j].active && ctx->sessions[j].handle == candidate) {
+                    in_use = 1;
+                    break;
+                }
+            }
+            if (!in_use) { handle = candidate; break; }
+        }
+        if (handle == 0) return NX_HORIZON_E_CAPACITY;
         session->handle = handle;
         session->service_index = (uint16_t)service_index;
         session->active = 1;
