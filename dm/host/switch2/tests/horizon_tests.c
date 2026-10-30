@@ -58,6 +58,18 @@ int main(void) {
     assert(nx_horizon_cmif_dispatch(&ctx, "sm:", bad_magic,
         sizeof(bad_magic), cmif_response, sizeof(cmif_response),
         &cmif_response_size) == NX_HORIZON_E_BUFFER);
-    puts("Switch 2 Horizon service-router and CMIF framing tests passed");
+
+    uint32_t session = 0;
+    assert(nx_horizon_open_session(&ctx, "sm:", &session) == NX_HORIZON_OK);
+    assert(session != 0);
+    assert(nx_horizon_session_cmif_dispatch(&ctx, session, cmif_request,
+        sizeof(cmif_request), cmif_response, sizeof(cmif_response),
+        &cmif_response_size) == NX_HORIZON_OK);
+    assert(nx_horizon_close_session(&ctx, session) == NX_HORIZON_OK);
+    assert(nx_horizon_session_cmif_dispatch(&ctx, session, cmif_request,
+        sizeof(cmif_request), cmif_response, sizeof(cmif_response),
+        &cmif_response_size) == NX_HORIZON_E_NOT_FOUND);
+    assert(nx_horizon_close_session(&ctx, session) == NX_HORIZON_E_NOT_FOUND);
+    puts("Switch 2 Horizon service, CMIF, and session tests passed");
     return 0;
 }
