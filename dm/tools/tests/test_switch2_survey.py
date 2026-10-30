@@ -47,9 +47,10 @@ def make_nso_with_mod0():
     text[0x100:0x104] = b"MOD0"
     struct.pack_into("<i", text, 0x104, 0x100)  # dynamic section at image +0x200
     dynamic = [
-        (6, 0x1200), (5, 0x1100), (7, 0x1500), (8, 48), (9, 24),
-        (23, 0x1530), (2, 24), (20, 7), (36, 0x1580), (35, 8),
-        (37, 8), (0, 0),
+        (6, 0x1200), (5, 0x1100), (7, 0x1500), (8, 72), (9, 24),
+        (23, 0x1548), (2, 24), (20, 7), (36, 0x1580), (35, 8),
+        (37, 8), (0x70000012, 0x1590), (0x70000011, 8),
+        (0x70000013, 8), (0, 0),
     ]
     for index, (tag, value) in enumerate(dynamic):
         struct.pack_into("<qQ", text, 0x200 + index * 16, tag, value)
@@ -60,9 +61,11 @@ def make_nso_with_mod0():
     struct.pack_into("<IBBHQQ", ro, 0x200 + 24, 1, 0x12, 0, 0, 0, 0)
     struct.pack_into("<IBBHQQ", ro, 0x200 + 48, 22, 0x12, 0, 0, 0, 0)
     struct.pack_into("<QQq", ro, 0x500, 0x2100, 1027, 0x1234)
-    struct.pack_into("<QQq", ro, 0x518, 0x2108, 1036, 0x55)  # AUTH_RELATIVE
-    struct.pack_into("<QQq", ro, 0x530, 0x2110, (2 << 32) | 1026, 0)
-    struct.pack_into("<Q", ro, 0x580, 0x2118)  # one RELR base entry
+    struct.pack_into("<QQq", ro, 0x518, 0x2108, 580, 0x55)  # AUTH_ABS64
+    struct.pack_into("<QQq", ro, 0x530, 0x2110, 1041, 0x66)  # AUTH_RELATIVE
+    struct.pack_into("<QQq", ro, 0x548, 0x2118, (2 << 32) | 1026, 0)
+    struct.pack_into("<Q", ro, 0x580, 0x2120)  # one RELR base entry
+    struct.pack_into("<Q", ro, 0x590, 0x2128)  # one AUTH_RELR base entry
     data = bytes(0x1000)
 
     header = bytearray(0x100)
@@ -107,9 +110,11 @@ class Switch2SurveyTests(unittest.TestCase):
         metadata = report["dynamic_metadata"]
         self.assertTrue(metadata["available"], metadata)
         self.assertEqual(metadata["rela"]["types"]["R_AARCH64_RELATIVE"], 1)
+        self.assertEqual(metadata["rela"]["types"]["R_AARCH64_AUTH_ABS64"], 1)
         self.assertEqual(metadata["rela"]["types"]["R_AARCH64_AUTH_RELATIVE"], 1)
         self.assertEqual(metadata["jmprel"]["types"]["R_AARCH64_JUMP_SLOT"], 1)
         self.assertEqual(metadata["relr"]["relocation_slots"], 1)
+        self.assertEqual(metadata["auth_relr"]["relocation_slots"], 1)
 
     def test_rejects_non_nso(self):
         with tempfile.TemporaryDirectory() as tmp:
