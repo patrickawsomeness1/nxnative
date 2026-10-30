@@ -30,9 +30,10 @@ def make_nso(flags=0x40 | 0x38):
     header[0x40:0x60] = bytes(range(32))
     struct.pack_into("<I", header, 0x0C, flags)
     struct.pack_into("<IIII", header, 0x90, 0x100, len(strings), 0x200, 72)
-    segments = [(0x100, 0x0000, text), (0x110, 0x1000, bytes(ro)), (0x1110, 0x2000, data)]
+    segments = [(0x0000, text), (0x1000, bytes(ro)), (0x2000, data)]
     body = bytearray()
-    for i, (file_offset, memory_offset, payload) in enumerate(segments):
+    for i, (memory_offset, payload) in enumerate(segments):
+        file_offset = 0x100 + len(body)
         struct.pack_into("<III", header, 0x10 + i * 0x10, file_offset, memory_offset, len(payload))
         struct.pack_into("<I", header, 0x60 + i * 4, len(payload))
         header[0xA0 + i * 0x20:0xC0 + i * 0x20] = hashlib.sha256(payload).digest()
