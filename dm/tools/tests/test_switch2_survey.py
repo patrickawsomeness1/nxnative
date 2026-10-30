@@ -15,13 +15,22 @@ import switch2_survey
 
 def make_nso(flags=0x40 | 0x38):
     text = struct.pack("<IIII", 0xD503233F, 0xD503245F, 0xD4001001, 0xD65F03C0)  # paciasp; bti c; svc #0x80; ret
-    ro = b"read-only test!!"
+    ro = bytearray(0x1000)
+    import_one = b"nn::os::CreateThread"
+    import_two = b"nn::vi::OpenDisplay"
+    strings = b"\\0" + import_one + b"\\0" + import_two + b"\\0"
+    ro[0x100:0x100 + len(strings)] = strings
+    name_one = 1
+    name_two = 1 + len(import_one) + 1
+    struct.pack_into("<IBBHQQ", ro, 0x200 + 24, name_one, 0x12, 0, 0, 0, 0)
+    struct.pack_into("<IBBHQQ", ro, 0x200 + 48, name_two, 0x12, 0, 0, 0, 0)
+    struct.pack_into("<IIII", header, 0x90, 0x100, len(strings), 0x200, 72)
     data = b"writable test!!!"
     header = bytearray(0x100)
     header[:4] = b"NSO0"
     header[0x40:0x60] = bytes(range(32))
     struct.pack_into("<I", header, 0x0C, flags)
-    segments = [(0x100, 0x0000, text), (0x110, 0x1000, ro), (0x120, 0x2000, data)]
+    segments = [(0x100, 0x0000, text), (0x110, 0x1000, bytes(ro)), (0x1110, 0x2000, data)]
     body = bytearray()
     for i, (file_offset, memory_offset, payload) in enumerate(segments):
         struct.pack_into("<III", header, 0x10 + i * 0x10, file_offset, memory_offset, len(payload))
@@ -42,6 +51,10 @@ class Switch2SurveyTests(unittest.TestCase):
         self.assertEqual(report["aarch64_text_scan"]["instruction_counts"]["bti"], 1)
         self.assertEqual(report["aarch64_text_scan"]["instruction_counts"]["svc"], 1)
         self.assertEqual(report["aarch64_text_scan"]["svc_numbers"], {"0x80": 1})
+        self.assertEqual(
+            [item["name"] for item in report["dynamic_symbols"]["undefined_imports"]],
+            ["nn::os::CreateThread", "nn::vi::OpenDisplay"],
+        )
 
     def test_rejects_non_nso(self):
         with tempfile.TemporaryDirectory() as tmp:
