@@ -1,4 +1,5 @@
 #include "horizon.h"
+#include "hipc.h"
 #include <string.h>
 
 void nx_horizon_init(nx_horizon_context *ctx) {
