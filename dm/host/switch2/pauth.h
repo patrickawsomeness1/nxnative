@@ -2,6 +2,9 @@
 #pragma once
 #include <stdint.h>
 
+#if defined(__clang__) && (defined(__aarch64__) || defined(__arm64__))
+__attribute__((target("arch=armv8.3-a")))
+#endif
 static inline int nx_pauth_sign_elf_pointer(
     uint64_t value, uint64_t schema, uint64_t place, uint64_t *signed_value) {
     if (!signed_value) return 0;
