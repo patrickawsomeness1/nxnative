@@ -9,6 +9,12 @@ This directory is the isolated Switch 2 runtime profile for iPadOS (M3 iPad Air)
 - The router deliberately does **not** fabricate Nintendo `nn::Result` values or pretend to implement CMIF/SFCO wire framing.
 - The current test uses a synthetic echo service. It proves only registry/dispatch behavior, not Horizon compatibility or game boot.
 
+## CMIF framing foundation
+
+- `nx_horizon_cmif_dispatch()` validates the 16-byte CMIF request header (`SFCI`, version, command ID, token), dispatches the command payload, and emits an `SFCO` response header on success.
+- The response preserves the request token and writes a success result only when the handler succeeds. Host-side failures are returned separately; no unverified Nintendo result mapping is guessed.
+- This is the CMIF message layer only. It does not implement the outer HIPC/TIPC transport, handle descriptors, domain objects, session negotiation, or `sm:` commands. Tests use synthetic messages, not captured Switch 2 traffic.
+
 ## Next implementation sequence
 
 1. Capture service-manager and IPC traffic from a self-built Switch 2 homebrew test program.
