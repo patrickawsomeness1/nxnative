@@ -6,7 +6,7 @@ This is a standalone iOS/iPadOS diagnostic app. It does **not** emulate Switch 2
 
 - The app can create the system Metal device.
 - It can create a Metal command queue.
-- It executes signed-in-app AArch64 PACIA/AUTIA, PACIB/AUTIB, PACDA/AUTDA, PACDB/AUTDB, a PAC-authenticated indirect branch (`BRAA`), and BTI landing pads. It reports whether all four key round trips and the authenticated branch succeed. This is a host CPU capability smoke test only; it does not prove Switch 2's exact PAC key/ABI compatibility.
+- It executes signed-in-app AArch64 PACIA/AUTIA, PACIB/AUTIB, PACDA/AUTDA, PACDB/AUTDB, a PAC-authenticated indirect branch (`BRAA`) into a `BTI j` landing pad. It reports whether all four key round trips and the authenticated branch succeed. This is a host CPU capability smoke test only; it does not prove Switch 2's exact PAC key/ABI compatibility.
 - It compiles and runs the same shared `dm/host/switch2/pauth.h` signing-schema decoder used by the loader, comparing IA/IB/DA/DB key selection, address-diversity, and discriminator handling against independent assembly sign instructions. This validates the standard Arm PAuth ELF schema mapping on the host CPU.
 - It remaps a dedicated signed `__TEXT` code page, requests `VM_PROT_EXECUTE` without `VM_PROT_READ`, executes a tiny function from that alias, and reports whether the complete XOM path succeeds. This directly tests the iOS signed-page strategy; it does not yet prove the full guest loader can enforce XOM for every module layout.
 - It executes an ARMv8 LSE `LDADDAL` atomic against aligned host memory and verifies the returned old value and new value. This checks one important atomic instruction family used by native AArch64 code; it is not a complete CPU-feature conformance test.
