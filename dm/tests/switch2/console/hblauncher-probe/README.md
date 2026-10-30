@@ -10,7 +10,7 @@ The host may select a maximum stage through `ctx->args[1]` (1–8); zero runs th
 | ---: | --- |
 | 0 | Native entry, HBLauncher ABI validation, context writeback |
 | 1 | Loader-provided stack pointer is nonzero and 16-byte aligned |
-| 2 | SDK timer read (CNTVCT-backed implementation) |
+| 2 | Direct `CNTFRQ_EL0` read plus SDK `hbx_tick()` (`CNTVCT_EL0`); writes hardware frequency, SDK `ctx->tick_hz`, and one tick sample to `ctx->args[3..5] |
 | 3 | SDK log-ring write |
 | 4 | 64 KiB heap allocation, deterministic write/readback, free |
 | 5 | Formatted logging |
@@ -18,7 +18,7 @@ The host may select a maximum stage through `ctx->args[1]` (1–8); zero runs th
 | 7 | PAC-authenticated `BRAA` into a `BTI j` landing pad |
 | 8 | LSE `LDADDAL` atomic read/modify/write |
 
-The app is built as a freestanding AArch64 image with BTI enabled by the upstream SDK toolchain. It intentionally does not initialise Vulkan, issue NVN2 calls, or assume retail Horizon service availability. Stages 6–8 execute PAC, authenticated-branch/BTI, and LSE instructions on the Switch 2 CPU when the package is run on-console; a successful CI cross-build alone does not verify those runtime results.
+The app is built as a freestanding AArch64 image with BTI enabled by the upstream SDK toolchain. Read `ctx->args[3]` and `[4]` after stage 2 to compare the console's `CNTFRQ_EL0` value with the SDK-provided tick frequency. It intentionally does not initialise Vulkan, issue NVN2 calls, or assume retail Horizon service availability. Stages 6–8 execute PAC, authenticated-branch/BTI, and LSE instructions on the Switch 2 CPU when the package is run on-console; a successful CI cross-build alone does not verify those runtime results.
 
 ## Build
 
