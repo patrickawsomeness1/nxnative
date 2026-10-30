@@ -114,6 +114,12 @@ Build one portable runtime with per-device profiles. The iPad profile can priori
 
 The test path should use homebrew that we build ourselves and software / firmware data the developer is authorized to inspect. Do not bundle Nintendo firmware, keys, game dumps, or copyrighted game content in this repository. Users must supply any legally obtained files themselves.
 
+## Current implementation status
+
+A standalone iOS/iPadOS Metal bring-up app now exists at `dm/tests/switch2/ios/`. It creates the system Metal device and command queue, presents a clear-only frame through `MTKView`, and displays device capability and frame-count diagnostics. A macOS GitHub Actions workflow builds this app without code signing.
+
+**This app is a platform smoke test, not a Switch 2 emulator.** Its source has been committed, but a successful CI build and physical-device run have not yet been confirmed. The existing nxnative game host remains Switch 1-specific.
+
 ## Immediate next engineering task
 
-Create a Switch 2 homebrew survey harness and a structured report format before implementing NVN2. This avoids building a large, speculative compatibility layer against unmeasured APIs.
+Build and run the standalone Metal bring-up app on the M3 iPad Air and iPhone 17 Pro Max. Once that baseline is confirmed, add the evidence-driven Switch 2 homebrew survey tooling and use a self-built Switch 2 test program to establish actual loader, Horizon, and NVN2 requirements. Do not implement guessed ABI signatures or object layouts.
