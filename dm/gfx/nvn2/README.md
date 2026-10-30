@@ -1,8 +1,8 @@
-# NVN2 graphics backend (experimental)
+# Switch 2 graphics-to-Metal backend (experimental)
 
-This directory is reserved for a Switch 2 graphics implementation. It is intentionally separate from `../nvn/`, which implements the original Switch NVN interface and its Tegra X1 / Maxwell assumptions.
+This directory is reserved for the Switch 2 graphics compatibility boundary in the native ARM64 runtime. Guest CPU code should execute natively where permitted; NVIDIA GPU commands and shaders still require a separate translation/compatibility implementation. It is intentionally separate from `../nvn/`, which implements the original Switch NVN interface and its Tegra X1 / Maxwell assumptions.
 
-**Current status: no NVN2 implementation yet.** Do not add guessed prototypes, copied NVN object layouts, or assumed shader formats here.
+**Current status: no Switch 2 graphics implementation yet.** See [native ARM64 runtime architecture](../../../docs/switch2-native-arm64-runtime.md). Do not add guessed prototypes, copied NVN object layouts, or assumed shader formats here.
 
 ## Implementation order
 
