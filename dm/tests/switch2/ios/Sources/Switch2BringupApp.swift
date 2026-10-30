@@ -36,6 +36,7 @@ struct BringupDashboard: View {
                     infoRow("GPU", renderer.gpuStatus)
                     infoRow("Pointer authentication", renderer.pacStatus)
                     infoRow("Execute-only memory", renderer.xomStatus)
+                    infoRow("LSE atomics", renderer.lseStatus)
                     infoRow("Frames submitted", String(renderer.frameCount))
                     infoRow("Max buffer", renderer.maxBufferLength)
                     infoRow("Recommended working set", renderer.workingSet)
