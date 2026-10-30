@@ -21,6 +21,14 @@ Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 pat
 - `dm/tests/switch2/`: host-side tests and device smoke tests that need no commercial game content.
 - iPad app shell: expose a **Switch 2 experimental** runtime choice only when the Switch 2 backend is built; preserve the current Switch 1 flow.
 
+### Switch 2 module-format bring-up now in the branch
+
+The shared `dm/tools/nso.py` reader has been upgraded to the upstream validated implementation: segment bounds, optional segment SHA-256 checks, LZ4, and ZBIC (the Switch 2-era NSO compression mode) are handled before image allocation. The existing offline rewriter now consumes this reader rather than assuming LZ4-only NSO input.
+
+A new read-only `dm/tools/switch2_survey.py` reports NSO flags (including XOM and ZBIC), module IDs, segment layout, and static AArch64 PAC/authentication, BTI, SVC, LSE atomic, and selected system-register instruction observations. Synthetic tests and CI are being added for these behaviours.
+
+**Important:** the rewriter still applies the original Switch 1 thread-register/SVC/timer transformations. Parsing a Switch 2 NSO is not the same as executing it. PAC/XOM behaviour, Switch 2 SVC and IPC semantics, and NVN2 remain unimplemented until verified.
+
 ## Bring-up milestones
 
 ### 0. Establish a reproducible baseline
