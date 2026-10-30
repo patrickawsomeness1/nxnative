@@ -185,6 +185,25 @@ int main(void) {
     memcpy(hipc + 20, &version1, 4); // type 4 requires CMIF v0.
     assert(nx_hipc_parse_request(hipc, 36, &hipc_view) == NX_HIPC_E_HEADER);
 
+    // Deterministic malformed-message stress test. The parser must never
+    // dereference guest addresses or read beyond the bounded TLS message.
+    uint32_t fuzz_state = 0x6d2b79f5u;
+    for (size_t iteration = 0; iteration < 20000; ++iteration) {
+        uint8_t fuzz_buffer[128];
+        for (size_t j = 0; j < sizeof(fuzz_buffer); ++j) {
+            fuzz_state ^= fuzz_state << 13;
+            fuzz_state ^= fuzz_state >> 17;
+            fuzz_state ^= fuzz_state << 5;
+            fuzz_buffer[j] = (uint8_t)fuzz_state;
+        }
+        const size_t fuzz_size = (size_t)(fuzz_state % (sizeof(fuzz_buffer) + 1));
+        nx_hipc_view fuzz_view;
+        nx_hipc_status fuzz_status =
+            nx_hipc_parse_request(fuzz_buffer, fuzz_size, &fuzz_view);
+        assert(fuzz_status == NX_HIPC_OK || fuzz_status == NX_HIPC_E_ARGUMENT ||
+            fuzz_status == NX_HIPC_E_BUFFER || fuzz_status == NX_HIPC_E_HEADER);
+    }
+
     puts("Switch 2 Horizon service, CMIF, HIPC, and session tests passed");
     return 0;
 }
