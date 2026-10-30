@@ -51,6 +51,7 @@ class Switch2SurveyTests(unittest.TestCase):
         self.assertEqual(report["aarch64_text_scan"]["instruction_counts"]["bti"], 1)
         self.assertEqual(report["aarch64_text_scan"]["instruction_counts"]["svc"], 1)
         self.assertEqual(report["aarch64_text_scan"]["svc_numbers"], {"0x80": 1})
+        self.assertTrue(report["dynamic_symbols"]["available"], report["dynamic_symbols"])
         self.assertEqual(
             [item["name"] for item in report["dynamic_symbols"]["undefined_imports"]],
             ["nn::os::CreateThread", "nn::vi::OpenDisplay"],
