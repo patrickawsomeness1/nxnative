@@ -52,7 +52,7 @@ Needs iOS / iPadOS 26 or later. Other games aren't supported yet. For them the s
 git clone https://github.com/seedds/nxnative.git && cd nxnative
 brew install xcodegen zstd spirv-cross
 brew install --cask dotnet-sdk
-python3 -m pip install lz4 capstone fonttools
+python3 -m pip install lz4 capstone fonttools zbic
 ```
 
 **2. Put one game's NSPs in a folder**, base game and update (and any DLC):
