@@ -180,7 +180,7 @@ The CI job `build-switch2-hblauncher-probe`:
 - cross-builds the nxnative probe as a freestanding AArch64 app with BTI enabled by the SDK;
 - publishes `code.bin`, `data.bin`, and `report.json` as `nxnative-switch2-hblauncher-probe`.
 
-The probe stages check the HBLauncher ABI context, caller/host-provided stack path, SDK timer access, log-ring write, 64 KiB heap allocation/write/readback/free, and formatted logging. It does not initialise Vulkan or call NVN2, so failures are easier to isolate to CPU execution, app ABI, memory, or host-service handoff.
+The probe stages check the HBLauncher ABI context, stack alignment, GetSystemTick/SleepThread timing via SVCs 0x1e/0x0b, log-ring write, 64 KiB heap allocation/write/readback/free, formatted logging, PACIA/PACIB/PACDA/PACDB authentication round trips, an authenticated BRAA into a BTI j landing pad, and LSE LDADDAL. It does not initialise Vulkan or call NVN2.
 
 The first CI build completed successfully in [workflow run #41146201247](https://github.com/patrickawsomeness1/nxnative/actions/runs/41146201247): the probe compiled and linked to a 3,893-byte, one-page AArch64 code image, with empty data/BSS, and uploaded artifact `nxnative-switch2-hblauncher-probe` (artifact ID `13020722356`). This is a build result only; the artifact has not yet been run on a physical Switch 2.
 
@@ -190,6 +190,18 @@ The first CI build completed successfully in [workflow run #41146201247](https:/
 
 Build and run the standalone Metal bring-up app on the M3 iPad Air and iPhone 17 Pro Max. Once that baseline is confirmed, add the evidence-driven Switch 2 homebrew survey tooling and use a self-built Switch 2 test program to establish actual loader, Horizon, and NVN2 requirements. Do not implement guessed ABI signatures or object layouts.
 
+
+### Horizon IPC transport milestone (2026-10-30)
+
+The Switch 2-only host boundary now has a bounded HIPC parser in dm/host/switch2/hipc.c and a descriptor-free HIPC-to-CMIF session adapter in horizon.c. It decodes the HIPC header, optional special header/PID, copy/move handle descriptor ranges, send/receive/exchange buffer descriptor ranges, data words, receive-static list, and 16-byte-aligned CMIF v0/v1 request. Every range is bounds-checked; guest-provided buffer addresses are never dereferenced.
+
+The first transport path deliberately accepts only normal CMIF request types 4 and 6 with no PID, handles, buffer descriptors, receive statics, or TIPC/domain objects. It routes through an internal host session and builds a bounded HIPC response. Descriptor-bearing requests fail closed rather than being silently ignored. The internal session handle is not a Horizon kernel handle.
+
+The boundary tests cover HIPC header and descriptor offsets, PID and handle ranges, receive-static list, aligned CMIF v0/v1, malformed/truncated messages, token preservation, end-to-end descriptor-free HIPC → session → CMIF handler → HIPC response, and explicit rejection of requests containing buffer descriptors.
+
+GitHub Actions run #41147076051 passed the iOS build/package, NSO survey tests, Switch 2 Horizon HIPC/CMIF boundary tests, and HBLauncher CPU-probe cross-build. A follow-on end-to-end HIPC dispatch test is queued/running on the latest branch revision; check the branch Actions page before treating that newest test as passed.
+
+Still missing: captured traffic from a self-built Switch 2 homebrew app, service-manager (sm:) semantics, kernel handle/SVC transport, HIPC response descriptors, TIPC/domain objects, retail NSO execution, and NVN2. Synthetic parser tests are not evidence of actual console compatibility.
 
 ### HBLauncher adapter analysis
 
