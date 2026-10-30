@@ -7,7 +7,6 @@ on:
       - switch2-m3-bringup
     paths:
       - "dm/tests/switch2/ios/**"
-      - "dm/tests/switch2/console/**"
       - ".github/workflows/switch2-metal-smoke.yml"
 
 jobs:
@@ -58,38 +57,3 @@ jobs:
           path: dm/tests/switch2/ios/Switch2Bringup-unsigned.ipa
           if-no-files-found: error
 
-  build-switch2-console-probe:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out nxnative
-        uses: actions/checkout@v4
-
-      - name: Install AArch64 toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu python3
-
-      - name: Fetch pinned HBLauncher SDK
-        run: |
-          git clone https://github.com/ravensclawx/HBLauncher.git /tmp/HBLauncher
-          git -C /tmp/HBLauncher checkout 18b4748ba98eeac7df17beb5d3418985eb74897c
-          mkdir -p /tmp/HBLauncher/apps/nxnative-switch2-probe
-          cp -R dm/tests/switch2/console/nxnative-switch2-probe/. /tmp/HBLauncher/apps/nxnative-switch2-probe/
-
-      - name: Build Switch 2 console probe
-        run: |
-          python3 /tmp/HBLauncher/sdk/tools/hbx-build.py \
-            /tmp/HBLauncher/apps/nxnative-switch2-probe \
-            --code-base 0x0c000000 \
-            --data-base 0x0d000000
-
-      - name: Upload HBLauncher app package
-        uses: actions/upload-artifact@v4
-        with:
-          name: nxnative-switch2-console-probe
-          path: |
-            /tmp/HBLauncher/apps/nxnative-switch2-probe/build/code.bin
-            /tmp/HBLauncher/apps/nxnative-switch2-probe/build/data.bin
-            /tmp/HBLauncher/apps/nxnative-switch2-probe/build/report.json
-            /tmp/HBLauncher/apps/nxnative-switch2-probe/manifest.json
-          if-no-files-found: error
