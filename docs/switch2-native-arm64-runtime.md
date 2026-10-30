@@ -68,7 +68,6 @@ Run the self-built test to completion and present a rendered frame on both Apple
 
 - The SwiftUI/Metal dashboard is only an Apple GPU smoke test.
 - The NRO/NSO/ELF reader is metadata inspection only; it is not the Switch 2 loader. The actual nxnative native-execution pipeline is the offline NSO rewriter, signed code embedding, and iOS `vm_remap` loader described above.
-- The HBLauncher probe is an optional, separate console-side diagnostic built for that launcher's own ABI. It is not the Switch 2 runtime and must not define the product architecture.
 - None of these artifacts currently executes Switch 2 guest code.
 
 ## Definition of "working"
