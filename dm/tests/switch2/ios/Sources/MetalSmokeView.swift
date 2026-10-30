@@ -3,6 +3,9 @@ import MetalKit
 import SwiftUI
 import UIKit
 
+@_silgen_name("nx_pac_sign") private func nx_pac_sign(_ pointer: UInt64, _ modifier: UInt64) -> UInt64
+@_silgen_name("nx_pac_auth") private func nx_pac_auth(_ pointer: UInt64, _ modifier: UInt64) -> UInt64
+
 struct MetalSmokeView: UIViewRepresentable {
     let renderer: MetalSmokeRenderer
 
@@ -28,6 +31,7 @@ final class MetalSmokeRenderer: NSObject, ObservableObject, MTKViewDelegate {
 
     let deviceName: String
     let gpuStatus: String
+    let pacStatus: String
     let maxBufferLength: String
     let workingSet: String
     let message: String
@@ -39,6 +43,17 @@ final class MetalSmokeRenderer: NSObject, ObservableObject, MTKViewDelegate {
         commandQueue = selectedDevice?.makeCommandQueue()
         deviceName = selectedDevice?.name ?? "No Metal device"
         gpuStatus = selectedDevice?.hasUnifiedMemory == true ? "Unified memory" : "Unavailable / discrete"
+        let pacInput: UInt64 = 0x0000_0000_1234_5678
+        let pacModifier: UInt64 = 0x42
+        let signedPointer = nx_pac_sign(pacInput, pacModifier)
+        let authenticatedPointer = nx_pac_auth(signedPointer, pacModifier)
+        if signedPointer != pacInput && authenticatedPointer == pacInput {
+            pacStatus = "PAC sign/auth round-trip passed"
+        } else if authenticatedPointer != pacInput {
+            pacStatus = "PAC round-trip failed"
+        } else {
+            pacStatus = "PAC not detected (instructions may be treated as hints)"
+        }
         maxBufferLength = selectedDevice.map { ByteCountFormatter.string(fromByteCount: Int64($0.maxBufferLength), countStyle: .memory) } ?? "—"
         if let selectedDevice {
             workingSet = ByteCountFormatter.string(fromByteCount: Int64(selectedDevice.recommendedMaxWorkingSetSize), countStyle: .memory)
