@@ -2,7 +2,7 @@
 #include <string.h>
 
 void nx_horizon_init(nx_horizon_context *ctx) {
-    if (ctx) memset(ctx, 0, sizeof(*ctx));
+    if (ctx) { memset(ctx, 0, sizeof(*ctx)); ctx->next_session_handle = 1; }
 }
 
 nx_horizon_status nx_horizon_register_service(
