@@ -39,7 +39,7 @@ See [the M3 bring-up plan](../../../docs/switch2-m3-port-plan.md).
 
 ## HIPC transport boundary
 
-`hipc.c/.h` now parses the HIPC request header, optional special header/PID, copy/move handles, send/receive/exchange buffer descriptors, data words, and receive-static list with strict bounds checks. It locates 16-byte-aligned CMIF v0/v1 payloads. `nx_horizon_session_hipc_dispatch` can round-trip simple descriptor-free CMIF requests through an internal session and build a HIPC response. It deliberately rejects descriptor-bearing requests for now; it does not yet implement `svcConnectToNamedPort`, kernel handle translation, domain objects, pointer-buffer mapping, or a complete `sm:` service manager.
+`hipc.c/.h` now parses the HIPC request header, optional special header/PID, copy/move handles, send/receive/exchange buffer descriptors, data words, and receive-static list with strict bounds checks. It locates 16-byte-aligned CMIF v0/v1 payloads. `nx_horizon_session_hipc_dispatch` can round-trip simple descriptor-free CMIF requests through an internal session and build a HIPC response. It deliberately rejects descriptor-bearing requests for now; it does not yet implement `svcConnectToNamedPort`, kernel handle translation, domain objects, pointer-buffer mapping, or a complete `sm:` service manager. The boundary test job compiles with AddressSanitizer and UndefinedBehaviorSanitizer and runs 20,000 deterministic malformed HIPC messages without a sanitizer finding.
 
 ## Verified SDK syscall overlap
 
