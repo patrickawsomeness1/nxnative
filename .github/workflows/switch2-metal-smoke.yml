@@ -6,7 +6,8 @@ on:
     branches:
       - switch2-m3-bringup
     paths:
-      - "dm/tests/switch2/ios/**"\n      - "dm/tests/switch2/console/**"
+      - "dm/tests/switch2/ios/**"
+      - "dm/tests/switch2/console/**"
       - ".github/workflows/switch2-metal-smoke.yml"
 
 jobs:
