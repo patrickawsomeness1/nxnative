@@ -72,6 +72,13 @@ nx_horizon_status nx_horizon_session_cmif_dispatch(
     nx_horizon_context *ctx, uint32_t handle,
     const uint8_t *request, size_t request_size,
     uint8_t *response, size_t response_capacity, size_t *response_size);
+// HIPC transport for simple descriptor-free CMIF requests. Buffer/handle descriptors,
+// domain objects, and SVC handle translation remain explicit unsupported cases.
+nx_horizon_status nx_horizon_session_hipc_dispatch(
+    nx_horizon_context *ctx, uint32_t handle,
+    const uint8_t *hipc_request, size_t hipc_request_size,
+    uint8_t *hipc_response, size_t hipc_response_capacity,
+    size_t *hipc_response_size);
 // CMIF framing only: the enclosing HIPC/TIPC transport and Nintendo result
 // domain mapping are deliberately outside this API. A handler error is returned
 // locally; no guessed Nintendo result code is serialized.
