@@ -215,7 +215,7 @@ static void register_gates(module_t *m, const char *dir) {
 // Each 8-byte entry: even = a new start offset (relocate it, the pointer moves to the next slot); odd = a bitmap whose bits 1-63 stand for the 63 slots after the pointer, which then moves on by 63 slots.
 // Without it main's GOT and vtables hold module offsets (main's RELA keeps only symbol relocations)
 static unsigned relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t delta) {
-    if (relrsz % 8 || relr > m->size || relrsz > m->size - relr)
+    if ((relr & 7) || relrsz % 8 || relr > m->size || relrsz > m->size - relr)
         die("%s: DT_RELR table is out of bounds or has an invalid size", m->name);
     const uint64_t *entries = (const uint64_t *)(m->base + relr);
     uint64_t where_off = 0;
@@ -224,7 +224,7 @@ static unsigned relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t
     for (uint64_t i = 0; i < relrsz / 8; i++) {
         uint64_t entry = entries[i];
         if (!(entry & 1)) {
-            if (entry > m->size - 8) die("%s: DT_RELR target is out of bounds", m->name);
+            if ((entry & 7) || entry > m->size - 8) die("%s: DT_RELR target is unaligned or out of bounds", m->name);
             where_off = entry;
             *(uint64_t *)(m->base + where_off) += delta;
             where_off += 8;
@@ -255,7 +255,7 @@ static uint64_t pauth_sign_pointer(uint64_t value, uint64_t schema, uint64_t pla
 // SHT_AARCH64_AUTH_RELR uses RELR bitmaps; each target stores the schema in its high
 // 32 bits and a signed 32-bit addend in its low 32 bits.
 static unsigned auth_relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t delta) {
-    if (relrsz % 8 || relr > m->size || relrsz > m->size - relr)
+    if ((relr & 7) || relrsz % 8 || relr > m->size || relrsz > m->size - relr)
         die("%s: authenticated RELR table is out of bounds or has an invalid size", m->name);
     const uint64_t *entries = (const uint64_t *)(m->base + relr);
     uint64_t where_off = 0;
@@ -264,7 +264,7 @@ static unsigned auth_relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uin
     for (uint64_t i = 0; i < relrsz / 8; i++) {
         uint64_t entry = entries[i];
         if (!(entry & 1)) {
-            if (entry > m->size - 8) die("%s: authenticated RELR target is out of bounds", m->name);
+            if ((entry & 7) || entry > m->size - 8) die("%s: authenticated RELR target is unaligned or out of bounds", m->name);
             where_off = entry;
             uint64_t *slot = (uint64_t *)(m->base + where_off);
             uint64_t encoded = *slot;
@@ -317,11 +317,11 @@ static void relocate(module_t *m) {
     }
     int cnt[3] = {0}, nint = 0, cntauth = 0;
     if (has_rel) die("%s: DT_REL/DT_RELSZ relocations are not supported; expected RELA", m->name);
-    if (relaent != sizeof(Elf64_Rela) || (relasz && (!rela || relasz % sizeof(Elf64_Rela))))
+    if (relaent != sizeof(Elf64_Rela) || (relasz && (!rela || (rela & 7) || relasz % sizeof(Elf64_Rela))))
         die("%s: invalid DT_RELA pointer, size, or entry size", m->name);
     if (rela > m->size || relasz > m->size - rela)
         die("%s: DT_RELA table exceeds module image bounds", m->name);
-    if (pltsz && (!jmprel || pltrel != DT_RELA || pltsz % sizeof(Elf64_Rela)))
+    if (pltsz && (!jmprel || (jmprel & 7) || pltrel != DT_RELA || pltsz % sizeof(Elf64_Rela)))
         die("%s: invalid DT_JMPREL/DT_PLTRELSZ/DT_PLTREL", m->name);
     if (jmprel > m->size || pltsz > m->size - jmprel)
         die("%s: DT_JMPREL table exceeds module image bounds", m->name);
@@ -338,7 +338,7 @@ static void relocate(module_t *m) {
     for (int t = 0; t < 2; t++)
         for (uint64_t i = 0; i < sizes[t] / sizeof(Elf64_Rela); i++) {
             const Elf64_Rela *r = &tabs[t][i];
-            if (r->r_offset > m->size - 8) die("%s: relocation target 0x%llx is out of bounds", m->name, (unsigned long long)r->r_offset);
+            if ((r->r_offset & 7) || r->r_offset > m->size - 8) die("%s: relocation target 0x%llx is unaligned or out of bounds", m->name, (unsigned long long)r->r_offset);
             uint64_t *where = (uint64_t *)(m->base + r->r_offset);
             unsigned type = ELF64_R_TYPE(r->r_info), si = ELF64_R_SYM(r->r_info);
             if (type == R_AARCH64_RELATIVE) { *where = (uint64_t)m->base + r->r_addend; cnt[0]++; continue; }
