@@ -21,6 +21,16 @@ Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 pat
 - `dm/tests/switch2/`: host-side tests and device smoke tests that need no commercial game content.
 - iPad app shell: expose a **Switch 2 experimental** runtime choice only when the Switch 2 backend is built; preserve the current Switch 1 flow.
 
+### Verified iOS bring-up build
+
+GitHub Actions run [#41144064842](https://github.com/patrickawsomeness1/nxnative/actions/runs/41144064842) completed successfully on 2026-10-30:
+- Swift payload parser tests passed.
+- XcodeGen generated the iOS project.
+- Xcode compiled the universal arm64 iOS app, including the signed-in-app PAC/BTI assembly smoke-test routines.
+- CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020307923`).
+
+This is a verified **unsigned diagnostic app build**, not a game runtime. It has not been signed for the user's account, installed on the M3 iPad Air or A19 Pro iPhone 17 Pro Max, or tested with a Switch 2 executable. A successful build proves the app and ARM64 probe compile, not that Switch 2 guest code executes.
+
 ### Switch 2 module-format bring-up now in the branch
 
 The shared `dm/tools/nso.py` reader has been upgraded to the upstream validated implementation: segment bounds, optional segment SHA-256 checks, LZ4, and ZBIC (the Switch 2-era NSO compression mode) are handled before image allocation. The existing offline rewriter now consumes this reader rather than assuming LZ4-only NSO input.
