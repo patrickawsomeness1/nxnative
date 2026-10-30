@@ -323,7 +323,7 @@ static void relocate(module_t *m) {
                 die("%s: unsupported AArch64 relocation type %u; refusing unsafe generic relocation", m->name, type);
             const Elf64_Sym *s = &m->symtab[si];
             if (s->st_shndx == 0 && ELF64_ST_BIND(s->st_info) == STB_WEAK &&
-                (type == R_AARCH64_AUTH_ABS64 || type == R_AARCH64_AUTH_GLOB_DAT)) { *where = 0; continue; }
+                (type == R_AARCH64_AUTH_ABS64 || type == R_AARCH64_AUTH_GLOB_DAT || (type == R_AARCH64_JUMP_SLOT && pac_plt))) { *where = 0; continue; }
             uint64_t v = (uint64_t)force_lookup(m->strtab + s->st_name);
             // Symbols the module defines itself are also looked up globally in load order (the ELF default; Horizon's rtld does the same): the definition of an earlier-loaded module overrides a later one; only local / non-default visibility binds to itself.
             // Engage's main defines its own operator new / delete (Unity's memory manager) and sdk has a copy too (forwarding to malloc / free): previously sdk bound its own delete,
