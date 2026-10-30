@@ -36,6 +36,10 @@ Use self-built homebrew as the first target. Do not commit firmware, keys, comme
 **Status:** service-router foundation implemented; no Switch 2 CMIF service, Horizon SVC implementation, guest launch, or NVN2 renderer is complete yet.
 See [the M3 bring-up plan](../../../docs/switch2-m3-port-plan.md).
 
+## HIPC transport boundary
+
+`hipc.c/.h` now parses the HIPC request header, optional special header/PID, copy/move handles, send/receive/exchange buffer descriptors, data words, and receive-static list with strict bounds checks. It locates 16-byte-aligned CMIF v0/v1 payloads. `nx_horizon_session_hipc_dispatch` can round-trip simple descriptor-free CMIF requests through an internal session and build a HIPC response. It deliberately rejects descriptor-bearing requests for now; it does not yet implement `svcConnectToNamedPort`, kernel handle translation, domain objects, pointer-buffer mapping, or a complete `sm:` service manager.
+
 ## Verified SDK syscall overlap
 
 The pinned HBLauncher Native SDK calls `SVC 0x1e` for `GetSystemTick` and `SVC 0x0b` for `SleepThread`. nxnative's current HLE already dispatches these through `hle_svc.c` and `hle_thread.c`. The console-side probe exercises both and reports the SDK-provided tick frequency and measured elapsed ticks. This confirms an ABI overlap in the SDK source, not yet a successful Switch 2 runtime test; the native console frequency must be measured on hardware.
