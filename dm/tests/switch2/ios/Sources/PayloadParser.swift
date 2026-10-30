@@ -100,7 +100,9 @@ enum PayloadParser {
                              version: String(version), buildID: buildID, fileSize: data.count,
                              segments: segments,
                              notes: ["Header inspected only; compressed sections are not decompressed.",
-                                     "NSO is an original Switch executable container; Switch 2 compatibility is not implied."])
+                                     (flags & 0x40) != 0 ? "NSO requests execute-only text (XOM)." : "NSO XOM flag is not set.",
+                                     (flags & 0x80) != 0 ? "NSO uses ZBIC-compressed segments." : "NSO ZBIC flag is not set.",
+                                     "NSO is a shared module container; this header alone does not identify the console generation or prove ABI compatibility."])
     }
 
     private static func inspectELF(_ data: Data, fileName: String) throws -> PayloadReport {
