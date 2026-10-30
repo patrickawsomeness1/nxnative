@@ -44,7 +44,7 @@ def dynamic_symbols(raw: bytes, module) -> dict:
         name_offset, info, other, shndx, value, size = struct.unpack_from("<IBBHQQ", image, offset)
         if name_offset >= len(strings):
             continue
-        end = strings.find(b"\\0", name_offset)
+        end = strings.find(b"\0", name_offset)
         if end < 0:
             continue
         name = bytes(strings[name_offset:end]).decode("utf-8", errors="replace")
