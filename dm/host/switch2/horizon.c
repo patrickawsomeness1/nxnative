@@ -47,3 +47,50 @@ nx_horizon_status nx_horizon_dispatch(
 size_t nx_horizon_service_count(const nx_horizon_context *ctx) {
     return ctx ? ctx->service_count : 0;
 }
+
+
+static uint32_t nx_read_le32(const uint8_t *p) {
+    return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
+        ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+}
+
+static void nx_write_le32(uint8_t *p, uint32_t value) {
+    p[0] = (uint8_t)value;
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
+}
+
+nx_horizon_status nx_horizon_cmif_dispatch(
+    nx_horizon_context *ctx, const char *service_name,
+    const uint8_t *cmif_request, size_t cmif_request_size,
+    uint8_t *cmif_response, size_t cmif_response_capacity,
+    size_t *cmif_response_size) {
+    if (cmif_response_size) *cmif_response_size = 0;
+    if (!ctx || !service_name || !cmif_request || !cmif_response ||
+        !cmif_response_size) return NX_HORIZON_E_ARGUMENT;
+    if (cmif_request_size < NX_CMIF_HEADER_SIZE) return NX_HORIZON_E_BUFFER;
+    if (nx_read_le32(cmif_request) != NX_CMIF_REQUEST_MAGIC ||
+        nx_read_le32(cmif_request + 4) != NX_CMIF_VERSION)
+        return NX_HORIZON_E_COMMAND;
+    if (cmif_response_capacity < NX_CMIF_HEADER_SIZE)
+        return NX_HORIZON_E_BUFFER;
+
+    const uint32_t command_id = nx_read_le32(cmif_request + 8);
+    const uint32_t token = nx_read_le32(cmif_request + 12);
+    size_t payload_size = 0;
+    nx_horizon_status status = nx_horizon_dispatch(
+        ctx, service_name, command_id,
+        cmif_request + NX_CMIF_HEADER_SIZE,
+        cmif_request_size - NX_CMIF_HEADER_SIZE,
+        cmif_response + NX_CMIF_HEADER_SIZE,
+        cmif_response_capacity - NX_CMIF_HEADER_SIZE, &payload_size);
+    if (status != NX_HORIZON_OK) return status;
+
+    nx_write_le32(cmif_response, NX_CMIF_RESPONSE_MAGIC);
+    nx_write_le32(cmif_response + 4, NX_CMIF_VERSION);
+    nx_write_le32(cmif_response + 8, 0); // success only; no guessed result mapping
+    nx_write_le32(cmif_response + 12, token);
+    *cmif_response_size = NX_CMIF_HEADER_SIZE + payload_size;
+    return NX_HORIZON_OK;
+}
