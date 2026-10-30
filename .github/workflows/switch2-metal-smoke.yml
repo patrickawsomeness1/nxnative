@@ -92,3 +92,18 @@ jobs:
 
       - name: Check survey CLI
         run: python dm/tools/switch2_survey.py --help
+
+
+  test-switch2-horizon-boundary:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Compile and test isolated Horizon service boundary
+        run: |
+          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+            dm/host/switch2/horizon.c \
+            dm/host/switch2/tests/horizon_tests.c \
+            -o /tmp/nx-horizon-tests
+          /tmp/nx-horizon-tests
