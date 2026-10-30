@@ -6,11 +6,14 @@
  * ctx->args[1]; ctx->args[2] reports the last completed stage.
  *
  * 0: entry + ABI validation + context writeback
- * 1: host-provided stack is selected by the HBLauncher loader
+ * 1: loader-provided stack pointer is nonzero and 16-byte aligned
  * 2: CNTVCT-backed SDK timer access
  * 3: SDK log ring write
  * 4: 64 KiB heap allocate / write / readback / free
  * 5: formatted log path
+ * 6: PACIA/IB/DA/DB authentication round trips
+ * 7: PAC-authenticated BRAA branch into a BTI landing pad
+ * 8: LSE LDADDAL atomic read/modify/write
  */
 #include "hbx_sdk.h"
 #include "hbx_app.h"
@@ -93,5 +96,5 @@ int hbx_app_main(const struct hbx_ctx *ctx) {
 
     out->frame = NX_PROBE_MARKER;
     out->args[2] = reached;
-    return 0x5a;
+    return HBX_OK;
 }
