@@ -19,10 +19,15 @@ typedef struct { uint8_t *d; size_t n; } dm_blob;   // One save file of the orig
 #define ELF64_R_TYPE(i) ((i) & 0xffffffff)
 enum { DT_INIT = 12, DT_RELA = 7, DT_RELASZ = 8, DT_JMPREL = 23, DT_PLTRELSZ = 2, DT_SYMTAB = 6, DT_STRTAB = 5,
        DT_INIT_ARRAY = 25, DT_INIT_ARRAYSZ = 27, DT_RELRSZ = 35, DT_RELR = 36 };
-enum { R_AARCH64_ABS64 = 257, R_AARCH64_GLOB_DAT = 1025, R_AARCH64_JUMP_SLOT = 1026, R_AARCH64_RELATIVE = 1027 };
+#define DT_AARCH64_PAC_PLT 0x70000003
+#define DT_AARCH64_VARIANT_PCS 0x70000005
+#define DT_AARCH64_AUTH_SYM 0x70000008
+enum { R_AARCH64_ABS64 = 257, R_AARCH64_GLOB_DAT = 1025, R_AARCH64_JUMP_SLOT = 1026, R_AARCH64_RELATIVE = 1027,
+       R_AARCH64_AUTH_ABS64 = 580, R_AARCH64_AUTH_RELATIVE = 1041, R_AARCH64_AUTH_GLOB_DAT = 1042,
+       R_AARCH64_AUTH_TLSDESC = 1043, R_AARCH64_AUTH_IRELATIVE = 1044 };
 #define ELF64_ST_BIND(i) ((i) >> 4)            // symbol binding: 0 = STB_LOCAL
 #define ELF64_ST_VISIBILITY(o) ((o) & 3)       // visibility: 0 = STV_DEFAULT
-enum { STB_LOCAL = 0, STV_DEFAULT = 0 };
+enum { STB_LOCAL = 0, STB_WEAK = 2, STV_DEFAULT = 0 };
 
 // Run-time state of one NSO module
 typedef struct {
