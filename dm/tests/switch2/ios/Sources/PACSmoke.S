@@ -27,7 +27,7 @@ _nx_pac_branch_probe:
     pacia x0, x1
     braa x0, x1
 _nx_pac_branch_target:
-    bti c
+    bti j
     mov x0, #0x2a
     ret
 
