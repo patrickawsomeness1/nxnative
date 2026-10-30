@@ -7,6 +7,7 @@ This is a standalone iOS/iPadOS diagnostic app. It does **not** emulate Switch 2
 - The app can create the system Metal device.
 - It can create a Metal command queue.
 - It executes signed-in-app AArch64 PACIA/AUTIA and BTI instructions and reports whether a pointer-authentication round trip changes and restores a sample value. This is a host CPU capability smoke test only; it does not prove Switch 2 PAC key/ABI compatibility.
+- It remaps a dedicated signed `__TEXT` code page, requests `VM_PROT_EXECUTE` without `VM_PROT_READ`, executes a tiny function from that alias, and reports whether the complete XOM path succeeds. This directly tests the iOS signed-page strategy; it does not yet prove the full guest loader can enforce XOM for every module layout.
 - It can acquire an MTKView drawable, encode a clear-only render pass, and present it.
 - It records the Metal device name, unified-memory status, maximum buffer length, recommended working-set size, and completed frame count.
 
