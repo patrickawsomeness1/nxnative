@@ -163,16 +163,16 @@ A standalone iOS/iPadOS Metal bring-up app now exists at `dm/tests/switch2/ios/`
 
 ## Public Switch 2 homebrew test path
 
-A separate console-side diagnostic package now lives in `dm/tests/switch2/console/nxnative-switch2-probe/`. It is built against the public [HBLauncher Native SDK](https://github.com/ravensclawx/HBLauncher), pinned in CI to commit `18b4748ba98eeac7df17beb5d3418985eb74897c` (MIT). The package validates the HBLauncher ABI context, a 64 KiB allocate/write/readback/free cycle, the Vulkan display handles passed by the launcher, swapchain dimensions, frame presentation, input polling, and elapsed time.
+The selected baseline is the native AArch64 [HBLauncher](https://github.com/ravensclawx/HBLauncher) SDK, pinned in CI to commit `18b4748ba98eeac7df17beb5d3418985eb74897c` (MIT). Its own `tests/probe` is the right model for a first test because it is deliberately staged and avoids graphics. nxnative now carries an independent, smaller test app at `dm/tests/switch2/console/hblauncher-probe/`.
 
-This is useful as a **console-side CPU/GPU baseline**, but its boundaries matter:
+The CI job `build-switch2-hblauncher-probe`:
+- fetches the pinned SDK revision;
+- cross-builds the nxnative probe as a freestanding AArch64 app with BTI enabled by the SDK;
+- publishes `code.bin`, `data.bin`, and `report.json` as `nxnative-switch2-hblauncher-probe`.
 
-- HBLauncher is an experimental userland environment running inside a SmileBASIC process; it is not a full custom firmware or a retail title loader.
-- The app ABI and shared Vulkan display are HBLauncher-specific. They do not expose or implement the Switch 2 retail NVN2 interface.
-- A successful cross-compile proves the app package is well-formed for the SDK; it does not prove it runs on a physical Switch 2.
-- The iOS app's NRO/NSO readers are format diagnostics for original Switch homebrew containers. They do not claim that those containers are Switch 2 retail executables.
+The probe stages check the HBLauncher ABI context, caller/host-provided stack path, SDK timer access, log-ring write, 64 KiB heap allocation/write/readback/free, and formatted logging. It does not initialise Vulkan or call NVN2, so failures are easier to isolate to CPU execution, app ABI, memory, or host-service handoff.
 
-The probe build is available as the GitHub Actions artifact `nxnative-switch2-console-probe`. A real console run, if available through a lawful and supported test setup, would provide observations for the HBLauncher path only. It must not be used to infer NVN2 retail ABI details.
+**Important boundary:** HBLauncher runs inside a SmileBASIC user process and supplies its own app ABI. This is a good native-AArch64 execution baseline, but it is not a retail NSO/NRO loader and does not expose the retail Horizon `sm:` service manager, HIPC transport, SVC ABI, or NVN2. A successful CI cross-build proves only compilation and linking. A successful run on an actual Switch 2 proves only the HBLauncher userland path exercised by the selected stage. It must not be treated as evidence that retail Switch 2 games boot.
 
 ## Immediate next engineering task
 
