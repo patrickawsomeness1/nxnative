@@ -1,6 +1,6 @@
 # Switch 2 on iPad Air M3 — bring-up plan
 
-Status: **experimental bring-up**. The iOS Metal test app and HBLauncher console-side diagnostic package build in CI. No Switch 2 retail game or NVN2 workload has been booted by this repository. The public nxnative codebase is a Nintendo Switch (Tegra X1 / NVN) native-execution project. Switch 2 support is a separate, experimental port.
+Status: **experimental bring-up; native ARM64 execution is the product goal**. The iOS Metal dashboard and optional HBLauncher diagnostic build in CI, but neither executes Switch 2 guest code. No Switch 2 homebrew or retail game has been executed by this repository. The public nxnative codebase is a Nintendo Switch (Tegra X1 / NVN) native-execution project. Switch 2 support is a separate port.
 
 Target devices: **iPad Air (M3)** and **iPhone 17 Pro Max (A19 Pro)**. Both iPadOS and iOS are first-class targets, sharing one Switch 2 runtime with device-specific profiles. A Mac build may be used as a development/test host, but it is not the product target.
 
@@ -10,7 +10,7 @@ The existing renderer in `dm/gfx/nvn/` takes over the original Switch NVN interf
 
 The existing Horizon host is also not automatically a Switch 2 host. Loader metadata, SVC behaviour, kernel objects, IPC services, filesystem interfaces, and process capabilities must be surveyed from a lawful homebrew test environment before adding compatibility code.
 
-## Proposed architecture
+## Execution architecture correction\n\nThe product is a **native ARM64 compatibility runtime**, not a full-system emulator or a replacement homebrew launcher. Compatible guest AArch64 code should run directly on the Apple CPU; the runtime supplies the Switch 2 loader/Horizon ABI and translates the NVIDIA graphics boundary to Metal. iOS code-signing restrictions on arbitrary imported executable pages are a first-order feasibility gate, especially for a no-JIT IPA. The implementation strategy and constraints are documented in [the native ARM64 runtime architecture](switch2-native-arm64-runtime.md).\n\n## Proposed architecture
 
 Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 path:
 
@@ -118,7 +118,7 @@ The test path should use homebrew that we build ourselves and software / firmwar
 
 A standalone iOS/iPadOS Metal bring-up app now exists at `dm/tests/switch2/ios/`. It creates the system Metal device and command queue, presents a clear-only frame through `MTKView`, and displays device capability and frame-count diagnostics. A macOS GitHub Actions workflow is configured to build the app, package an unsigned IPA, and upload it as an artifact. The evidence schema for Switch 2 homebrew surveys is at `dm/tests/switch2/survey/`.
 
-**This app is a platform smoke test, not a Switch 2 emulator.** Its source and CI workflow have been committed, but a successful CI build and physical-device run have not yet been confirmed. The existing nxnative game host remains Switch 1-specific.
+**This app is only a platform smoke test.** It does not execute guest code. CI build status must be checked against the current workflow run; physical-device execution has not been confirmed. The existing nxnative game host remains Switch 1-specific.
 
 
 ## Public Switch 2 homebrew test path
