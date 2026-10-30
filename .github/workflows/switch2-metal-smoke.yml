@@ -7,6 +7,11 @@ on:
       - switch2-m3-bringup
     paths:
       - "dm/tests/switch2/ios/**"
+      - "dm/tools/nso.py"
+      - "dm/tools/patch_nso.py"
+      - "dm/tools/switch2_survey.py"
+      - "dm/tools/tests/test_nso.py"
+      - "dm/tools/tests/test_switch2_survey.py"
       - ".github/workflows/switch2-metal-smoke.yml"
 
 jobs:
@@ -57,3 +62,25 @@ jobs:
           path: dm/tests/switch2/ios/Switch2Bringup-unsigned.ipa
           if-no-files-found: error
 
+
+  test-switch2-native-module:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install parser dependencies
+        run: python -m pip install "capstone>=5,<6" lz4
+
+      - name: Test validated NSO loader and Switch 2 survey
+        run: |
+          python dm/tools/tests/test_nso.py
+          python dm/tools/tests/test_switch2_survey.py
+
+      - name: Check survey CLI
+        run: python dm/tools/switch2_survey.py --help
