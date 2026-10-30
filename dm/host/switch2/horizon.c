@@ -166,3 +166,62 @@ nx_horizon_status nx_horizon_session_cmif_dispatch(
     }
     return NX_HORIZON_E_NOT_FOUND;
 }
+
+static void nx_horizon_write_le32(uint8_t *p, uint32_t value) {
+    p[0] = (uint8_t)value;
+    p[1] = (uint8_t)(value >> 8);
+    p[2] = (uint8_t)(value >> 16);
+    p[3] = (uint8_t)(value >> 24);
+}
+
+nx_horizon_status nx_horizon_session_hipc_dispatch(
+    nx_horizon_context *ctx, uint32_t handle,
+    const uint8_t *hipc_request, size_t hipc_request_size,
+    uint8_t *hipc_response, size_t hipc_response_capacity,
+    size_t *hipc_response_size) {
+    if (hipc_response_size) *hipc_response_size = 0;
+    if (!ctx || handle == 0 || !hipc_request || !hipc_response ||
+        !hipc_response_size) return NX_HORIZON_E_ARGUMENT;
+
+    nx_hipc_view view;
+    nx_hipc_status parse_status =
+        nx_hipc_parse_request(hipc_request, hipc_request_size, &view);
+    if (parse_status == NX_HIPC_E_ARGUMENT) return NX_HORIZON_E_ARGUMENT;
+    if (parse_status == NX_HIPC_E_BUFFER) return NX_HORIZON_E_BUFFER;
+    if (parse_status != NX_HIPC_OK) return NX_HORIZON_E_COMMAND;
+
+    // First transport milestone: normal CMIF requests without copied/moved
+    // handles, buffer descriptors, receive statics, or PID transfer.
+    if ((view.message_type != NX_HIPC_CMIF_REQUEST &&
+         view.message_type != NX_HIPC_CMIF_REQUEST_WITH_CONTEXT) ||
+        !view.cmif_request || view.send_pid || view.num_copy_handles ||
+        view.num_move_handles || view.num_send_statics ||
+        view.num_send_buffers || view.num_recv_buffers ||
+        view.num_exch_buffers || view.num_recv_statics ||
+        view.recv_static_auto)
+        return NX_HORIZON_E_COMMAND;
+
+    uint8_t cmif_response[4096];
+    size_t cmif_response_size = 0;
+    nx_horizon_status status = nx_horizon_session_cmif_dispatch(
+        ctx, handle, view.cmif_request, view.cmif_available,
+        cmif_response, sizeof(cmif_response), &cmif_response_size);
+    if (status != NX_HORIZON_OK) return status;
+    if (cmif_response_size < 16 || cmif_response_size > 4084)
+        return NX_HORIZON_E_BUFFER;
+
+    // HIPC data words begin at byte 8. CMIF headers are 16-byte aligned,
+    // so the response carries eight bytes of zero padding before SFCO.
+    const size_t data_word_bytes = 8u + cmif_response_size;
+    const size_t num_data_words = (data_word_bytes + 3u) / 4u;
+    if (num_data_words > 0x3ffu) return NX_HORIZON_E_BUFFER;
+    const size_t total_size = 8u + num_data_words * 4u;
+    if (total_size > hipc_response_capacity) return NX_HORIZON_E_BUFFER;
+
+    memset(hipc_response, 0, total_size);
+    nx_horizon_write_le32(hipc_response, 0); /* HIPC response, no descriptors */
+    nx_horizon_write_le32(hipc_response + 4, (uint32_t)num_data_words);
+    memcpy(hipc_response + 16, cmif_response, cmif_response_size);
+    *hipc_response_size = total_size;
+    return NX_HORIZON_OK;
+}
