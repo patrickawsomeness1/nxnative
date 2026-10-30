@@ -22,6 +22,11 @@ src, outdir, NAME = sys.argv[1], sys.argv[2], sys.argv[3]
 import nso
 d = open(src, 'rb').read()
 MOD = nso.cli_read(src)
+flags = struct.unpack_from('<I', d, 0x0C)[0]
+if os.environ.get("DM_TARGET", "switch1").lower() == "switch2":
+    sys.exit("[RED] Switch 2 native rewriting is not enabled yet: run dm/tools/switch2_survey.py and implement the verified PAC/XOM/Horizon changes first")
+if flags & 0x40:
+    sys.exit("[RED] NSO requests execute-only text (XOM); the current Switch 1 signed-code loader maps readable RX text and cannot preserve Switch 2 XOM semantics")
 segs = [(0, mo, sz) for mo, sz in MOD.segments]
 bss = MOD.bss
 # Every jump between the patch area and the code is a B (±128 MB). A patch area appended after the image (with bss) cannot reach the code when it would start beyond 112 MB (leaving 16 MB for the patch area): Metroid Dread's main has about 1.8 GB of bss (the engine's static heap); Engage's main starts its patch area at about 103 MB and keeps it after the image.
