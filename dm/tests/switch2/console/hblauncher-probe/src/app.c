@@ -19,6 +19,7 @@
 #include "hbx_app.h"
 #include <stdint.h>
 
+extern uint64_t nx_probe_cntfrq(void);
 extern int nx_probe_pac_keys(void);
 extern int nx_probe_pac_branch(void);
 extern uint64_t nx_probe_lse_add(volatile uint64_t *address, uint64_t value);
@@ -43,7 +44,9 @@ int hbx_app_main(const struct hbx_ctx *ctx) {
     }
 
     if (stage >= 2u) {
-        (void)hbx_tick();
+        out->args[3] = nx_probe_cntfrq();
+        out->args[4] = ctx->tick_hz;
+        out->args[5] = hbx_tick();
         reached = 3;
     }
 
