@@ -1,6 +1,6 @@
 # Switch 2 on iPad Air M3 — bring-up plan
 
-Status: **research / architecture plan only**. This document does not claim that Switch 2 software currently boots in this repository. The public nxnative codebase is a Nintendo Switch (Tegra X1 / NVN) native-execution project. Switch 2 support is a separate, experimental port.
+Status: **experimental bring-up**. The iOS Metal test app and HBLauncher console-side diagnostic package build in CI. No Switch 2 retail game or NVN2 workload has been booted by this repository. The public nxnative codebase is a Nintendo Switch (Tegra X1 / NVN) native-execution project. Switch 2 support is a separate, experimental port.
 
 Target devices: **iPad Air (M3)** and **iPhone 17 Pro Max (A19 Pro)**. Both iPadOS and iOS are first-class targets, sharing one Switch 2 runtime with device-specific profiles. A Mac build may be used as a development/test host, but it is not the product target.
 
@@ -119,6 +119,20 @@ The test path should use homebrew that we build ourselves and software / firmwar
 A standalone iOS/iPadOS Metal bring-up app now exists at `dm/tests/switch2/ios/`. It creates the system Metal device and command queue, presents a clear-only frame through `MTKView`, and displays device capability and frame-count diagnostics. A macOS GitHub Actions workflow is configured to build the app, package an unsigned IPA, and upload it as an artifact. The evidence schema for Switch 2 homebrew surveys is at `dm/tests/switch2/survey/`.
 
 **This app is a platform smoke test, not a Switch 2 emulator.** Its source and CI workflow have been committed, but a successful CI build and physical-device run have not yet been confirmed. The existing nxnative game host remains Switch 1-specific.
+
+
+## Public Switch 2 homebrew test path
+
+A separate console-side diagnostic package now lives in `dm/tests/switch2/console/nxnative-switch2-probe/`. It is built against the public [HBLauncher Native SDK](https://github.com/ravensclawx/HBLauncher), pinned in CI to commit `18b4748ba98eeac7df17beb5d3418985eb74897c` (MIT). The package validates the HBLauncher ABI context, a 64 KiB allocate/write/readback/free cycle, the Vulkan display handles passed by the launcher, swapchain dimensions, frame presentation, input polling, and elapsed time.
+
+This is useful as a **console-side CPU/GPU baseline**, but its boundaries matter:
+
+- HBLauncher is an experimental userland environment running inside a SmileBASIC process; it is not a full custom firmware or a retail title loader.
+- The app ABI and shared Vulkan display are HBLauncher-specific. They do not expose or implement the Switch 2 retail NVN2 interface.
+- A successful cross-compile proves the app package is well-formed for the SDK; it does not prove it runs on a physical Switch 2.
+- The iOS app's NRO/NSO readers are format diagnostics for original Switch homebrew containers. They do not claim that those containers are Switch 2 retail executables.
+
+The probe build is available as the GitHub Actions artifact `nxnative-switch2-console-probe`. A real console run, if available through a lawful and supported test setup, would provide observations for the HBLauncher path only. It must not be used to infer NVN2 retail ABI details.
 
 ## Immediate next engineering task
 
