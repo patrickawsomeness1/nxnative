@@ -10,7 +10,11 @@ The existing renderer in `dm/gfx/nvn/` takes over the original Switch NVN interf
 
 The existing Horizon host is also not automatically a Switch 2 host. Loader metadata, SVC behaviour, kernel objects, IPC services, filesystem interfaces, and process capabilities must be surveyed from a lawful homebrew test environment before adding compatibility code.
 
-## Execution architecture correction\n\nThe product is a **native ARM64 compatibility runtime**, not a full-system emulator or a replacement homebrew launcher. Follow nxnative's existing no-JIT design: rewrite guest code offline, embed its executable pages into the signed app's `__TEXT` segment, and use the iOS loader's `vm_remap` path to map those signed pages at the guest's expected addresses. Guest ARM64 code then executes directly on Apple CPU cores. Reuse the existing loader and build pipeline where the Switch 2 ABI permits; keep Switch 1 behaviour intact. Details: [native ARM64 runtime architecture](switch2-native-arm64-runtime.md).\n\n## Proposed architecture
+## Execution architecture correction
+
+The product is a **native ARM64 compatibility runtime**, not a full-system emulator or a replacement homebrew launcher. Follow nxnative's existing no-JIT design: rewrite guest code offline, embed its executable pages into the signed app's `__TEXT` segment, and use the iOS loader's `vm_remap` path to map those signed pages at the guest's expected addresses. Guest ARM64 code then executes directly on Apple CPU cores. Reuse the existing loader and build pipeline where the Switch 2 ABI permits; keep Switch 1 behaviour intact. Details: [native ARM64 runtime architecture](switch2-native-arm64-runtime.md).
+
+## Proposed architecture
 
 Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 path:
 
@@ -23,13 +27,23 @@ Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 pat
 
 ### Verified iOS bring-up build
 
-GitHub Actions run [#41144064842](https://github.com/patrickawsomeness1/nxnative/actions/runs/41144064842) completed successfully on 2026-10-30:
+GitHub Actions run [#41144720898](https://github.com/patrickawsomeness1/nxnative/actions/runs/41144720898) completed successfully on 2026-10-30:
 - Swift payload parser tests passed.
 - XcodeGen generated the iOS project.
-- Xcode compiled the universal arm64 iOS app, including the signed-in-app PAC/BTI assembly smoke-test routines.
-- CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020307923`).
+- The native iOS `loader.c` XOM path passed an iOS-SDK syntax/type check.
+- Xcode compiled the universal arm64 diagnostic app, including PAC/BTI, LSE atomic, and signed-page XOM probe code.
+- CI packaged and uploaded `Switch2Bringup-unsigned-IPA`.
 
 This is a verified **unsigned diagnostic app build**, not a game runtime. It has not been signed for the user's account, installed on the M3 iPad Air or A19 Pro iPhone 17 Pro Max, or tested with a Switch 2 executable. A successful build proves the app and ARM64 probe compile, not that Switch 2 guest code executes.
+
+### Native execution compatibility work
+
+- Fixed the NSO reader's image-span check so it does not apply the LZ4 expansion-ratio ceiling to ZBIC-compressed modules; added a highly-compressible ZBIC regression case.
+- Added an `XOM` bit to the native module manifest and loader metadata. The loader now seals guest text execute-only only after it has read `MOD0`, parsed dynamic metadata, and applied relocations; the diagnostic hash path skips XOM modules rather than trying to read their text.
+- Added host probes for PAC/AUT, BTI, LSE `LDADDAL`, and remapping/executing a signed `__TEXT` page after requesting execute-only permissions.
+- The current Switch 1 rewriter still refuses Switch 2 targets and XOM NSOs. The XOM loader plumbing is dormant until a Switch 2-specific rewriter can emit a verified manifest.
+
+These changes are compile-checked in the successful iOS CI run, but the PAC/LSE/XOM probes have not yet been run on the user's physical M3 iPad Air or A19 Pro iPhone.
 
 ### Switch 2 module-format bring-up now in the branch
 
