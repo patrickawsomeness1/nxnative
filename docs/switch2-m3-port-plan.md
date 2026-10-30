@@ -116,9 +116,9 @@ The test path should use homebrew that we build ourselves and software / firmwar
 
 ## Current implementation status
 
-A standalone iOS/iPadOS Metal bring-up app now exists at `dm/tests/switch2/ios/`. It creates the system Metal device and command queue, presents a clear-only frame through `MTKView`, and displays device capability and frame-count diagnostics. A macOS GitHub Actions workflow builds this app without code signing.
+A standalone iOS/iPadOS Metal bring-up app now exists at `dm/tests/switch2/ios/`. It creates the system Metal device and command queue, presents a clear-only frame through `MTKView`, and displays device capability and frame-count diagnostics. A macOS GitHub Actions workflow is configured to build the app, package an unsigned IPA, and upload it as an artifact. The evidence schema for Switch 2 homebrew surveys is at `dm/tests/switch2/survey/`.
 
-**This app is a platform smoke test, not a Switch 2 emulator.** Its source has been committed, but a successful CI build and physical-device run have not yet been confirmed. The existing nxnative game host remains Switch 1-specific.
+**This app is a platform smoke test, not a Switch 2 emulator.** Its source and CI workflow have been committed, but a successful CI build and physical-device run have not yet been confirmed. The existing nxnative game host remains Switch 1-specific.
 
 ## Immediate next engineering task
 
