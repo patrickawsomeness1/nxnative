@@ -66,6 +66,22 @@ class Load(unittest.TestCase):
         self.assertEqual((m.image[:len(TEXT)], m.image[ro:ro + len(RO)], m.image[data:]), (TEXT, RO, DATA))
         self.assertEqual((m.bss, m.text_end, m.build_id), (0x5000, len(TEXT), bytes(range(0x20))))
 
+    def test_zbic_compressed_nso(self):
+        import zbic
+        segments = (TEXT, RO, DATA)
+        hdr, body, mo = bytearray(0x100), b'', 0
+        hdr[:4] = b'NSO0'; hdr[0x40:0x60] = bytes(range(0x20))
+        for i, payload in enumerate(segments):
+            stored = zbic.compress(payload)
+            struct.pack_into('<III', hdr, 0x10 + i * 0x10, 0x100 + len(body), mo, len(payload))
+            struct.pack_into('<I', hdr, 0x60 + 4 * i, len(stored))
+            hdr[0xa0 + 0x20 * i:0xc0 + 0x20 * i] = hashlib.sha256(payload).digest()
+            body += stored; mo = page(mo + len(payload))
+        struct.pack_into('<I', hdr, 0x0c, 0x80 | 0x38 | 0x07)
+        m = nso.load(hdr + body)
+        ro, data = page(len(TEXT)), page(page(len(TEXT)) + len(RO))
+        self.assertEqual((m.image[:len(TEXT)], m.image[ro:ro + len(RO)], m.image[data:]), segments)
+
     def test_nro(self):
         d, at = make_nro()
         m = nso.load(d)
