@@ -1,0 +1,36 @@
+name: Switch 2 Metal bring-up app
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - switch2-m3-bringup
+    paths:
+      - "dm/tests/switch2/ios/**"
+      - ".github/workflows/switch2-metal-smoke.yml"
+
+jobs:
+  build-ios-app:
+    runs-on: macos-15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: dm/tests/switch2/ios
+        run: xcodegen generate
+
+      - name: Build iOS and iPadOS app
+        working-directory: dm/tests/switch2/ios
+        run: |
+          xcodebuild \
+            -project Switch2Bringup.xcodeproj \
+            -scheme Switch2Bringup \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build
