@@ -1,18 +1,25 @@
 # Switch 2 native ARM64 host compatibility (experimental)
 
-This directory is reserved for a native ARM64 guest execution runtime plus Switch 2-specific loader and Horizon compatibility work for both iPadOS (M3 iPad Air) and iOS (A19 Pro iPhone 17 Pro Max). Existing generic host code may be reused only after its ABI and behavioural assumptions are checked against Switch 2 homebrew observations.
+This directory is the isolated Switch 2 runtime profile for iPadOS (M3 iPad Air) and iOS (A19 Pro iPhone 17 Pro Max). The target is direct execution of compatible guest AArch64 code, not a CPU interpreter as the default.
 
-**Current status: no Switch 2 guest execution implementation yet.** The product target is direct execution of compatible guest AArch64 code on Apple ARM64, not a CPU interpreter as the default. iOS executable-page/code-signing restrictions are a blocking feasibility gate for imported binaries; see [native ARM64 runtime architecture](../../../docs/switch2-native-arm64-runtime.md).
+## First implementation: Horizon service boundary
 
-Before adding code, collect a reproducible survey of:
+- `horizon.h/.c` provides a small, bounded service registry and command-dispatch boundary.
+- Services are registered explicitly by name; duplicate names, unknown services, invalid buffers, and capacity exhaustion fail closed.
+- The router deliberately does **not** fabricate Nintendo `nn::Result` values or pretend to implement CMIF/SFCO wire framing.
+- The current test uses a synthetic echo service. It proves only registry/dispatch behavior, not Horizon compatibility or game boot.
 
-- module format, loader metadata, relocations, and imported symbols;
-- SDK / OS version information and required SVCs;
-- service-manager and IPC requests during startup;
-- memory mapping, thread, synchronization, and filesystem behaviour.
+## Next implementation sequence
 
-Keep Switch 1 behaviour unchanged. Switch 2 differences must be explicit, testable, and selected by a distinct runtime profile; do not silently change the Switch 1 host.
+1. Capture service-manager and IPC traffic from a self-built Switch 2 homebrew test program.
+2. Implement the observed CMIF request/response framing and service-manager session lifecycle.
+3. Add narrowly scoped service implementations (starting with `sm:`, `set:`, `time:`, and `fs:` only as observations justify them).
+4. Connect the Horizon SVC boundary to the native ARM64 guest gate after Switch 2 SVC numbers and ABI are verified.
+5. Build NVN2 command/resource translation to Metal once a real homebrew graphics trace exists.
 
-Use self-built homebrew as the first test target. Do not commit firmware, keys, commercial game files, or copyrighted system components.
+Existing Switch 1 `hle_*.c` handlers are not automatically Switch 2 compatible. Reuse requires an ABI and behavior check. Keep the Switch 1 host unchanged.
 
+Use self-built homebrew as the first target. Do not commit firmware, keys, commercial game files, or copyrighted system components.
+
+**Status:** service-router foundation implemented; no Switch 2 CMIF service, Horizon SVC implementation, guest launch, or NVN2 renderer is complete yet.
 See [the M3 bring-up plan](../../../docs/switch2-m3-port-plan.md).
