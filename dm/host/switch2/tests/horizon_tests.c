@@ -112,6 +112,27 @@ int main(void) {
     assert(hipc_view.cmif_request == hipc + 16 && hipc_view.cmif_available == 20);
     assert(hipc_view.num_send_buffers == 0 && hipc_view.num_copy_handles == 0);
 
+    uint32_t hipc_session = 0;
+    assert(nx_horizon_open_session(&ctx, "sm:", &hipc_session) == NX_HORIZON_OK);
+    uint8_t hipc_response[128] = {0};
+    size_t hipc_response_size = 0;
+    assert(nx_horizon_session_hipc_dispatch(&ctx, hipc_session, hipc, 36,
+        hipc_response, sizeof(hipc_response), &hipc_response_size) == NX_HORIZON_OK);
+    assert(hipc_response_size == 36);
+    uint32_t response_word0 = 1, response_word1 = 0;
+    memcpy(&response_word0, hipc_response, 4);
+    memcpy(&response_word1, hipc_response + 4, 4);
+    assert(response_word0 == 0 && response_word1 == 7);
+    const uint32_t sfco = 0x4f434653u;
+    uint32_t response_magic = 0, response_version = 1, response_result = 1;
+    memcpy(&response_magic, hipc_response + 16, 4);
+    memcpy(&response_version, hipc_response + 20, 4);
+    memcpy(&response_result, hipc_response + 24, 4);
+    assert(response_magic == sfco && response_version == 0 && response_result == 0);
+    assert(hipc_response[32] == 9 && hipc_response[33] == 8 &&
+        hipc_response[34] == 7);
+    assert(nx_horizon_close_session(&ctx, hipc_session) == NX_HORIZON_OK);
+
     // Context-aware CMIF v1 uses HIPC RequestWithContext (type 6).
     hipc_word0 = NX_HIPC_CMIF_REQUEST_WITH_CONTEXT;
     memcpy(hipc, &hipc_word0, 4);
