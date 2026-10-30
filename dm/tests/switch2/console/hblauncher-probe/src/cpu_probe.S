@@ -51,7 +51,7 @@ nx_probe_pac_branch:
     pacia x0, x1
     braa x0, x1
 .Lpac_branch_target:
-    bti c
+    bti j
     mov w0, #42
     ret
 .size nx_probe_pac_branch, .-nx_probe_pac_branch
