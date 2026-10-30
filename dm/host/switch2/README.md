@@ -15,6 +15,12 @@ This directory is the isolated Switch 2 runtime profile for iPadOS (M3 iPad Air)
 - The response preserves the request token and writes a success result only when the handler succeeds. Host-side failures are returned separately; no unverified Nintendo result mapping is guessed.
 - This is the CMIF message layer only. It does not implement the outer HIPC/TIPC transport, handle descriptors, domain objects, session negotiation, or `sm:` commands. Tests use synthetic messages, not captured Switch 2 traffic.
 
+## Session lifecycle foundation
+
+- Host-internal session handles can be opened against registered services, used for CMIF dispatch, and closed.
+- These handles are not Horizon kernel handles. Real HIPC copy/move handle descriptors and actual `sm:` command semantics still require validation against a Switch 2 target.
+- Tests cover opening, dispatching through, closing, and rejecting a closed session.
+
 ## Next implementation sequence
 
 1. Capture service-manager and IPC traffic from a self-built Switch 2 homebrew test program.
