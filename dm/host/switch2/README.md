@@ -6,14 +6,15 @@ This directory is the isolated Switch 2 runtime profile for iPadOS (M3 iPad Air)
 
 - `horizon.h/.c` provides a small, bounded service registry and command-dispatch boundary.
 - Services are registered explicitly by name; duplicate names, unknown services, invalid buffers, and capacity exhaustion fail closed.
-- The router deliberately does **not** fabricate Nintendo `nn::Result` values or pretend to implement CMIF/SFCO wire framing.
-- The current test uses a synthetic echo service. It proves only registry/dispatch behavior, not Horizon compatibility or game boot.
+- The router deliberately does **not** fabricate Nintendo `nn::Result` values.
+- The current tests use a synthetic echo service. They prove host-side routing and framing mechanics only, not Horizon compatibility or game boot.
 
 ## CMIF framing foundation
 
 - `nx_horizon_cmif_dispatch()` validates the 16-byte CMIF request header (`SFCI`, version, command ID, token), dispatches the command payload, and emits an `SFCO` response header on success.
 - The response preserves the request token and writes a success result only when the handler succeeds. Host-side failures are returned separately; no unverified Nintendo result mapping is guessed.
-- This is the CMIF message layer only. It does not implement the outer HIPC/TIPC transport, handle descriptors, domain objects, session negotiation, or `sm:` commands. Tests use synthetic messages, not captured Switch 2 traffic.
+- CMIF framing is now carried inside a bounded HIPC request parser. HIPC descriptor ranges are validated and exposed as bytes only; guest addresses are never dereferenced.
+- The session adapter currently round-trips only descriptor-free CMIF requests. It rejects PID transfer, copied/moved handles, buffer descriptors, receive statics, TIPC/domain requests, and unsupported command types. It does not implement kernel handle translation or `sm:` semantics. Tests use synthetic messages, not captured Switch 2 traffic.
 
 ## Session lifecycle foundation
 
@@ -33,7 +34,7 @@ Existing Switch 1 `hle_*.c` handlers are not automatically Switch 2 compatible. 
 
 Use self-built homebrew as the first target. Do not commit firmware, keys, commercial game files, or copyrighted system components.
 
-**Status:** service-router foundation implemented; no Switch 2 CMIF service, Horizon SVC implementation, guest launch, or NVN2 renderer is complete yet.
+**Status:** bounded HIPC parsing and descriptor-free HIPC→CMIF session round-trip are implemented and CI-tested. No Switch 2 service implementation, kernel-handle transport, Horizon SVC implementation, retail guest launch, or NVN2 renderer is complete yet.
 See [the M3 bring-up plan](../../../docs/switch2-m3-port-plan.md).
 
 ## HIPC transport boundary
