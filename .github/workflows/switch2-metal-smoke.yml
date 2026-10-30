@@ -13,6 +13,7 @@ on:
       - "dm/tools/tests/test_nso.py"
       - "dm/tools/tests/test_switch2_survey.py"
       - "dm/host/switch2/**"\n      - "dm/host/loader.c"
+      - "dm/host/switch2/pauth.h"
       - "dm/host/dm.h"
       - ".github/workflows/switch2-metal-smoke.yml"
 
