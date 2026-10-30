@@ -7,6 +7,7 @@ on:
       - switch2-m3-bringup
     paths:
       - "dm/tests/switch2/ios/**"
+      - "dm/tests/switch2/console/**"
       - "dm/tools/nso.py"
       - "dm/tools/patch_nso.py"
       - "dm/tools/switch2_survey.py"
@@ -110,3 +111,38 @@ jobs:
             dm/host/switch2/tests/horizon_tests.c \
             -o /tmp/nx-horizon-tests
           /tmp/nx-horizon-tests
+
+
+  build-switch2-hblauncher-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out nxnative
+        uses: actions/checkout@v4
+
+      - name: Install AArch64 cross toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+      - name: Fetch pinned HBLauncher Native SDK
+        run: |
+          git clone https://github.com/ravensclawx/HBLauncher.git /tmp/HBLauncher
+          git -C /tmp/HBLauncher checkout 18b4748ba98eeac7df17beb5d3418985eb74897c
+
+      - name: Build nxnative staged CPU probe
+        run: |
+          mkdir -p /tmp/HBLauncher/apps/nxnative-probe
+          cp -R dm/tests/switch2/console/hblauncher-probe/. /tmp/HBLauncher/apps/nxnative-probe/
+          python3 /tmp/HBLauncher/sdk/tools/hbx-build.py \
+            /tmp/HBLauncher/apps/nxnative-probe \
+            --out "$GITHUB_WORKSPACE/build/hblauncher-probe"
+
+      - name: Upload native homebrew probe package
+        uses: actions/upload-artifact@v4
+        with:
+          name: nxnative-switch2-hblauncher-probe
+          path: |
+            build/hblauncher-probe/code.bin
+            build/hblauncher-probe/data.bin
+            build/hblauncher-probe/report.json
+          if-no-files-found: error
