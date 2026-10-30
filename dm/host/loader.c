@@ -225,9 +225,65 @@ static unsigned relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t
     return n;
 }
 
+
+static uint64_t pauth_sign_pointer(uint64_t value, uint64_t schema, uint64_t place) {
+    uint64_t discriminator = (schema >> 32) & 0xffff;
+    unsigned key = (unsigned)((schema >> 60) & 3);
+    uint64_t modifier = discriminator;
+    if (schema >> 63)
+        modifier = discriminator ? ((discriminator << 48) | (place & 0x0000ffffffffffffULL)) : place;
+#if defined(__aarch64__) || defined(__arm64__)
+    switch (key) {
+    case 0: __asm__ volatile("pacia %0, %1" : "+r"(value) : "r"(modifier)); break;
+    case 1: __asm__ volatile("pacib %0, %1" : "+r"(value) : "r"(modifier)); break;
+    case 2: __asm__ volatile("pacda %0, %1" : "+r"(value) : "r"(modifier)); break;
+    case 3: __asm__ volatile("pacdb %0, %1" : "+r"(value) : "r"(modifier)); break;
+    }
+    return value;
+#else
+    (void)value; (void)modifier; (void)key;
+    die("%s", "AArch64 pointer-authentication relocation requires an ARM64 host");
+    return 0;
+#endif
+}
+
+// SHT_AARCH64_AUTH_RELR uses RELR bitmaps; each target stores the schema in its high
+// 32 bits and a signed 32-bit addend in its low 32 bits.
+static unsigned auth_relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t delta) {
+    if (relrsz % 8) die("%s: DT_AARCH64_AUTH_RELRSZ is not a multiple of 8", m->name);
+    const uint64_t *entries = (const uint64_t *)(m->base + relr);
+    uint64_t *where = NULL;
+    unsigned count = 0;
+    for (uint64_t i = 0; i < relrsz / 8; i++) {
+        uint64_t entry = entries[i];
+        if (!(entry & 1)) {
+            where = (uint64_t *)(m->base + entry);
+            uint64_t encoded = *where;
+            uint64_t schema = encoded & 0xffffffff00000000ULL;
+            int32_t addend = (int32_t)(uint32_t)encoded;
+            *where = pauth_sign_pointer(delta + addend, schema, (uint64_t)where);
+            where++;
+            count++;
+            continue;
+        }
+        if (!where) die("%s: authenticated RELR bitmap appears before a base entry", m->name);
+        for (unsigned bit = 0; (entry >>= 1); bit++) if (entry & 1) {
+            uint64_t *slot = where + bit;
+            uint64_t encoded = *slot;
+            uint64_t schema = encoded & 0xffffffff00000000ULL;
+            int32_t addend = (int32_t)(uint32_t)encoded;
+            *slot = pauth_sign_pointer(delta + addend, schema, (uint64_t)slot);
+            count++;
+        }
+        where += 63;
+    }
+    return count;
+}
+
 static void relocate(module_t *m) {
     uint64_t rela = 0, relasz = 0, jmprel = 0, pltsz = 0, relr = 0, relrsz = 0;
     uint64_t auth_relr = 0, auth_relrsz = 0, auth_relrent = 0;
+    int pac_plt = 0, variant_pcs = 0, auth_sym = 0;
     for (const Elf64_Dyn *d = m->dyn; d->d_tag; d++) switch (d->d_tag) {
         case DT_RELA: rela = d->d_un.d_ptr; break;
         case DT_RELASZ: relasz = d->d_un.d_val; break;
@@ -238,9 +294,16 @@ static void relocate(module_t *m) {
         case DT_AARCH64_AUTH_RELR: auth_relr = d->d_un.d_ptr; break;
         case DT_AARCH64_AUTH_RELRSZ: auth_relrsz = d->d_un.d_val; break;
         case DT_AARCH64_AUTH_RELRENT: auth_relrent = d->d_un.d_val; break;
+        case DT_AARCH64_PAC_PLT: pac_plt = 1; break;
+        case DT_AARCH64_VARIANT_PCS: variant_pcs = 1; break;
+        case DT_AARCH64_AUTH_SYM: auth_sym = 1; break;
     }
-    int cnt[3] = {0}, nint = 0;
-    if (auth_relr || auth_relrsz || auth_relrent) die("%s: authenticated DT_AARCH64_AUTH_RELR is not implemented; refusing to load", m->name);
+    int cnt[3] = {0}, nint = 0, cntauth = 0;
+    if (variant_pcs) die("%s: DT_AARCH64_VARIANT_PCS requires a variant calling-convention bridge", m->name);
+    if (auth_sym) die("%s: DT_AARCH64_AUTH_SYM dlsym signing metadata is not implemented", m->name);
+    if ((auth_relr || auth_relrsz || auth_relrent) && (!auth_relr || !auth_relrsz || auth_relrent != 8))
+        die("%s: incomplete or invalid DT_AARCH64_AUTH_RELR table", m->name);
+    unsigned nauthrelr = auth_relr ? auth_relr_apply(m, auth_relr, auth_relrsz, (uint64_t)m->base) : 0;
     unsigned nrelr = relr ? relr_apply(m, relr, relrsz, (uint64_t)m->base) : 0;
     const Elf64_Rela *tabs[2] = {(const Elf64_Rela *)(m->base + rela), (const Elf64_Rela *)(m->base + jmprel)};
     uint64_t sizes[2] = {relasz, pltsz};
@@ -250,9 +313,17 @@ static void relocate(module_t *m) {
             uint64_t *where = (uint64_t *)(m->base + r->r_offset);
             unsigned type = ELF64_R_TYPE(r->r_info), si = ELF64_R_SYM(r->r_info);
             if (type == R_AARCH64_RELATIVE) { *where = (uint64_t)m->base + r->r_addend; cnt[0]++; continue; }
-            if (type != R_AARCH64_ABS64 && type != R_AARCH64_GLOB_DAT && type != R_AARCH64_JUMP_SLOT)
+            if (type == R_AARCH64_AUTH_RELATIVE) {
+                uint64_t schema = *where;
+                *where = pauth_sign_pointer((uint64_t)m->base + r->r_addend, schema, (uint64_t)where);
+                cntauth++; continue;
+            }
+            if (type != R_AARCH64_ABS64 && type != R_AARCH64_GLOB_DAT && type != R_AARCH64_JUMP_SLOT &&
+                type != R_AARCH64_AUTH_ABS64 && type != R_AARCH64_AUTH_GLOB_DAT)
                 die("%s: unsupported AArch64 relocation type %u; refusing unsafe generic relocation", m->name, type);
             const Elf64_Sym *s = &m->symtab[si];
+            if (s->st_shndx == 0 && ELF64_ST_BIND(s->st_info) == STB_WEAK &&
+                (type == R_AARCH64_AUTH_ABS64 || type == R_AARCH64_AUTH_GLOB_DAT)) { *where = 0; continue; }
             uint64_t v = (uint64_t)force_lookup(m->strtab + s->st_name);
             // Symbols the module defines itself are also looked up globally in load order (the ELF default; Horizon's rtld does the same): the definition of an earlier-loaded module overrides a later one; only local / non-default visibility binds to itself.
             // Engage's main defines its own operator new / delete (Unity's memory manager) and sdk has a copy too (forwarding to malloc / free): previously sdk bound its own delete,
@@ -264,10 +335,20 @@ static void relocate(module_t *m) {
                 if (v != self && nint++ < 8) LOG("%s: %s 绑到先装模块的定义（%s） | bound to an earlier module's definition", m->name, m->strtab + s->st_name, module_of((void *)v) ? module_of((void *)v)->name : "?");
             }
             if (!v) v = resolve_sym(m, m->strtab + s->st_name);
-            if (type == R_AARCH64_JUMP_SLOT) { *where = v; cnt[2]++; }
-            else { *where = v + r->r_addend; cnt[1]++; }       // ABS64 / GLOB_DAT
+            if (type == R_AARCH64_JUMP_SLOT) {
+                uint64_t value = v + r->r_addend;
+                *where = pac_plt ? pauth_sign_pointer(value, 1ULL << 63, (uint64_t)where) : value;
+                cnt[2]++;
+            } else {
+                uint64_t value = v + r->r_addend;
+                if (type == R_AARCH64_AUTH_ABS64 || type == R_AARCH64_AUTH_GLOB_DAT)
+                    value = pauth_sign_pointer(value, *where, (uint64_t)where);
+                *where = value;
+                if (type == R_AARCH64_AUTH_ABS64 || type == R_AARCH64_AUTH_GLOB_DAT) cntauth++;
+                else cnt[1]++;
+            }
         }
-    LOG("%s: reloc relative=%d relr=%u abs/glob=%d jump=%d%s", m->name, cnt[0], nrelr, cnt[1], cnt[2], nint ? "（含绑到先装模块的定义） | (some bound to an earlier module's definition)" : "");
+    LOG("%s: reloc relative=%d relr=%u auth=%d auth_relr=%u abs/glob=%d jump=%d pac_plt=%d%s", m->name, cnt[0], nrelr, cntauth, nauthrelr, cnt[1], cnt[2], pac_plt, nint ? "（含绑到先装模块的定义） | (some bound to an earlier module's definition)" : "");
     if (nint > 8) LOG("%s: 共 %d 处绑到先装模块的定义 | %d bound to an earlier module's definition in all", m->name, nint, nint);
 }
 
