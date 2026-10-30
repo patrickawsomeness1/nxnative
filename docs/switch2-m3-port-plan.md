@@ -27,12 +27,12 @@ Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 pat
 
 ### Verified iOS bring-up build
 
-GitHub Actions run [#41144720898](https://github.com/patrickawsomeness1/nxnative/actions/runs/41144720898) completed successfully on 2026-10-30:
+GitHub Actions run [#41144914667](https://github.com/patrickawsomeness1/nxnative/actions/runs/41144914667) completed successfully on 2026-10-30:
 - Swift payload parser tests passed.
 - XcodeGen generated the iOS project.
 - The native iOS `loader.c` XOM path passed an iOS-SDK syntax/type check.
 - Xcode compiled the universal arm64 diagnostic app, including PAC/BTI, LSE atomic, and signed-page XOM probe code.
-- CI packaged and uploaded `Switch2Bringup-unsigned-IPA`.
+- CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020437564`).
 
 This is a verified **unsigned diagnostic app build**, not a game runtime. It has not been signed for the user's account, installed on the M3 iPad Air or A19 Pro iPhone 17 Pro Max, or tested with a Switch 2 executable. A successful build proves the app and ARM64 probe compile, not that Switch 2 guest code executes.
 
@@ -49,7 +49,7 @@ These changes are compile-checked in the successful iOS CI run, but the PAC/LSE/
 
 The shared `dm/tools/nso.py` reader has been upgraded to the upstream validated implementation: segment bounds, optional segment SHA-256 checks, LZ4, and ZBIC (the Switch 2-era NSO compression mode) are handled before image allocation. The existing offline rewriter now consumes this reader rather than assuming LZ4-only NSO input.
 
-A new read-only `dm/tools/switch2_survey.py` reports NSO flags (including XOM and ZBIC), module IDs, segment layout, and static AArch64 PAC/authentication, BTI, SVC, LSE atomic, and selected system-register instruction observations. Synthetic tests for NSO bounds, hashes, ZBIC error handling, dynamic imports, PAC, BTI, SVC numbers, and the Switch 2/XOM rewriter safety guards now pass in GitHub Actions. The iOS bring-up app also contains signed-in-app PACIA/AUTIA and BTI instructions to probe the Apple host CPU; that test is compiled in CI but still needs a physical-device run.
+A new read-only `dm/tools/switch2_survey.py` reports NSO flags (including XOM and ZBIC), module IDs, segment layout, and static AArch64 PAC/authentication, BTI, SVC, LSE atomic, and selected system-register instruction observations, including `CTR_EL0`, `CNTFRQ_EL0`, and `TPIDR2_EL0`. Synthetic tests for NSO bounds, hashes, ZBIC error handling, dynamic imports, PAC, BTI, SVC numbers, and the Switch 2/XOM rewriter safety guards now pass in GitHub Actions. The iOS bring-up app also contains signed-in-app PACIA/AUTIA and BTI instructions to probe the Apple host CPU; that test is compiled in CI but still needs a physical-device run.
 
 **Important:** the rewriter still applies the original Switch 1 thread-register/SVC/timer transformations. Parsing a Switch 2 NSO is not the same as executing it. PAC/XOM behaviour, Switch 2 SVC and IPC semantics, and NVN2 remain unimplemented until verified.
 
