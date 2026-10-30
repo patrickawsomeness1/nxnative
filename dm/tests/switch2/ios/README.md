@@ -38,3 +38,11 @@ For each device, record:
 - app log / crash report if device creation or presentation fails.
 
 Do not infer Switch 2 API support from this test. It only validates the Apple Metal execution and presentation foundation.
+
+## Homebrew payload inspection
+
+The app can import a self-built `.nro`, `.nso`, or little-endian ELF64 file through the iOS Files picker. It reports the recognized container, architecture, version/build ID where present, and bounded loadable segment metadata. It never executes imported bytes.
+
+The NRO/NSO readers describe original Switch container formats. Their presence is for diagnostic comparison only; they are not claimed to be Switch 2 executable formats. A recognized ELF64 file is not automatically a Switch 2 title or compatible homebrew payload.
+
+The parser has synthetic tests for NRO0, NSO0, ELF64, malformed ranges, and unknown input. CI runs these tests before the iOS app build.
