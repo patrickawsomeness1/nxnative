@@ -39,7 +39,7 @@ enum PayloadParser {
         if data.count >= 0x80, ascii(data, at: 0x10, count: 4) == "NRO0" {
             return try inspectNRO(data, fileName: fileName)
         }
-        if data.count >= 0x70, ascii(data, at: 0, count: 4) == "NSO0" {
+        if data.count >= 0x100, ascii(data, at: 0, count: 4) == "NSO0" {
             return try inspectNSO(data, fileName: fileName)
         }
         if data.count >= 64, data[0] == 0x7f, data[1] == 0x45, data[2] == 0x4c, data[3] == 0x46 {
@@ -95,7 +95,7 @@ enum PayloadParser {
             segments.append(PayloadSegment(name: name, fileOffset: fileOffset, fileSize: fileSize,
                                            memoryOffset: memoryOffset, memorySize: memorySize, flags: nil))
         }
-        let buildID = hex(data.subdata(in: 0x48..<0x68))
+        let buildID = hex(data.subdata(in: 0x40..<0x60))
         return PayloadReport(fileName: fileName, format: "Nintendo NSO0", architecture: "AArch64 (64-bit)",
                              version: String(version), buildID: buildID, fileSize: data.count,
                              segments: segments,
