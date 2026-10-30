@@ -82,6 +82,23 @@ class Load(unittest.TestCase):
         ro, data = page(len(TEXT)), page(page(len(TEXT)) + len(RO))
         self.assertEqual((m.image[:len(TEXT)], m.image[ro:ro + len(RO)], m.image[data:]), segments)
 
+    def test_zbic_expansion_is_not_limited_by_lz4_ratio(self):
+        import zbic
+        segments = (bytes(0x400000), bytes(0x1000), bytes(0x1000))
+        hdr, body, mo = bytearray(0x100), b'', 0
+        hdr[:4] = b'NSO0'; hdr[0x40:0x60] = bytes(range(0x20))
+        for i, payload in enumerate(segments):
+            stored = zbic.compress(payload)
+            struct.pack_into('<III', hdr, 0x10 + i * 0x10, 0x100 + len(body), mo, len(payload))
+            struct.pack_into('<I', hdr, 0x60 + 4 * i, len(stored))
+            hdr[0xa0 + 0x20 * i:0xc0 + 0x20 * i] = hashlib.sha256(payload).digest()
+            body += stored; mo = page(mo + len(payload))
+        struct.pack_into('<I', hdr, 0x0c, 0x80 | 0x38 | 0x07)
+        raw = hdr + body
+        self.assertGreater(len(segments[0]) + page(len(segments[0])) + 0x2000, len(raw) * 255)
+        m = nso.load(raw)
+        self.assertEqual(m.image[:len(segments[0])], segments[0])
+
     def test_nro(self):
         d, at = make_nro()
         m = nso.load(d)
