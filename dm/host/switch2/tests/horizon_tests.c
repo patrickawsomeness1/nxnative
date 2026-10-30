@@ -70,6 +70,16 @@ int main(void) {
         sizeof(cmif_request), cmif_response, sizeof(cmif_response),
         &cmif_response_size) == NX_HORIZON_E_NOT_FOUND);
     assert(nx_horizon_close_session(&ctx, session) == NX_HORIZON_E_NOT_FOUND);
+
+    // Handle allocation must skip zero and avoid collisions across uint32 wrap.
+    ctx.next_session_handle = UINT32_MAX;
+    uint32_t last_handle = 0, wrapped_handle = 0;
+    assert(nx_horizon_open_session(&ctx, "sm:", &last_handle) == NX_HORIZON_OK);
+    assert(last_handle == UINT32_MAX);
+    assert(nx_horizon_open_session(&ctx, "sm:", &wrapped_handle) == NX_HORIZON_OK);
+    assert(wrapped_handle == 1 && wrapped_handle != last_handle);
+    assert(nx_horizon_close_session(&ctx, last_handle) == NX_HORIZON_OK);
+    assert(nx_horizon_close_session(&ctx, wrapped_handle) == NX_HORIZON_OK);
     puts("Switch 2 Horizon service, CMIF, and session tests passed");
     return 0;
 }
