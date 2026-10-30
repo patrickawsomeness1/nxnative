@@ -28,7 +28,8 @@ extern uint64_t nx_probe_lse_add(volatile uint64_t *address, uint64_t value);
 
 int hbx_app_main(const struct hbx_ctx *ctx) {
     struct hbx_ctx *out = (struct hbx_ctx *)(uintptr_t)ctx;
-    const uint32_t stage = (uint32_t)ctx->args[1];
+    const uint32_t requested_stage = (uint32_t)ctx->args[1];
+    const uint32_t stage = requested_stage ? requested_stage : 8u; /* default: run every stage */
     uint32_t reached = 0;
 
     if (hbx_ctx_check(ctx) != HBX_OK) return HBX_ERR_ABI;
