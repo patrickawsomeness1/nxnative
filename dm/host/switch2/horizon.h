@@ -1,0 +1,53 @@
+// Switch 2 Horizon compatibility boundary. This is a separate profile: it must not
+// silently reuse Switch 1 SVC or service semantics without an evidence-backed adapter.
+#pragma once
+#include <stddef.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define NX_HORIZON_MAX_SERVICES 32
+#define NX_HORIZON_MAX_NAME 64
+
+// These are host-internal status values, NOT Nintendo nn::Result values.
+typedef enum {
+    NX_HORIZON_OK = 0,
+    NX_HORIZON_E_ARGUMENT = -1,
+    NX_HORIZON_E_CAPACITY = -2,
+    NX_HORIZON_E_DUPLICATE = -3,
+    NX_HORIZON_E_NOT_FOUND = -4,
+    NX_HORIZON_E_COMMAND = -5,
+    NX_HORIZON_E_BUFFER = -6
+} nx_horizon_status;
+
+typedef nx_horizon_status (*nx_horizon_command_fn)(
+    void *opaque, uint32_t command_id,
+    const uint8_t *request, size_t request_size,
+    uint8_t *response, size_t response_capacity, size_t *response_size);
+
+typedef struct {
+    char name[NX_HORIZON_MAX_NAME];
+    void *opaque;
+    nx_horizon_command_fn dispatch;
+} nx_horizon_service;
+
+typedef struct {
+    nx_horizon_service services[NX_HORIZON_MAX_SERVICES];
+    size_t service_count;
+} nx_horizon_context;
+
+void nx_horizon_init(nx_horizon_context *ctx);
+nx_horizon_status nx_horizon_register_service(
+    nx_horizon_context *ctx, const char *name, void *opaque,
+    nx_horizon_command_fn dispatch);
+nx_horizon_status nx_horizon_dispatch(
+    nx_horizon_context *ctx, const char *service_name, uint32_t command_id,
+    const uint8_t *request, size_t request_size,
+    uint8_t *response, size_t response_capacity, size_t *response_size);
+size_t nx_horizon_service_count(const nx_horizon_context *ctx);
+
+#ifdef __cplusplus
+}
+#endif
