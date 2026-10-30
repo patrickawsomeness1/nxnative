@@ -11,7 +11,7 @@ This directory is reserved for a Switch 2 graphics implementation. It is intenti
 3. Implement device creation and capability queries.
 4. Implement queue / command-buffer lifecycle and a clear-only Metal present.
 5. Add synchronization, buffers, textures, resource barriers, shader loading, and draw commands incrementally.
-6. Add unit tests and M3 iPad Air device smoke tests for each milestone.
+6. Add unit tests and M3 iPad Air and A19 Pro iPhone 17 Pro Max device smoke tests on both target devices for each milestone.
 
 The Metal backend must use runtime feature checks and provide a conservative path for iPadOS. Do not assume Mac-only Metal features or memory budgets.
 
