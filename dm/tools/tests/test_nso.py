@@ -139,7 +139,7 @@ class Tools(unittest.TestCase):
     def test_red_line(self):
         with tempfile.TemporaryDirectory() as tmp:
             bad = Path(tmp) / 'main'; bad.write_bytes(seg(make_nso(), 2, sz=len(DATA) + 0x100))
-            for argv in (['dm/tools/patch_nso.py', bad, tmp, 'main'], ['dm/tools/nso.py', bad, Path(tmp) / 'main.bin'])):
+            for argv in (['dm/tools/patch_nso.py', bad, tmp, 'main'], ['dm/tools/nso.py', bad, Path(tmp) / 'main.bin']):
                 r = subprocess.run([sys.executable, *argv], cwd=REPO, capture_output=True, text=True, env=dict(os.environ, DM_GAME=''))
                 self.assertNotEqual(r.returncode, 0, argv[0])
                 self.assertNotIn('Traceback', r.stderr, argv[0]); self.assertTrue(r.stderr.startswith('[RED] '), (argv[0], r.stderr))
