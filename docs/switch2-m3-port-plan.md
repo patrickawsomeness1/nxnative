@@ -44,7 +44,7 @@ This is a **cross-built console probe package**, not a successful console execut
 
 ### Pointer-authenticated relocation analysis
 
-The survey now follows `MOD0` dynamic metadata and inventories `RELA`, `JMPREL`, `RELR`, and `DT_AARCH64_AUTH_RELR`. It uses the Arm PAuth ABI's actual relocation numbers, including `R_AARCH64_AUTH_ABS64` (580), `AUTH_RELATIVE` (1041), `AUTH_GLOB_DAT` (1042), `AUTH_TLSDESC` (1043), and `AUTH_IRELATIVE` (1044). The native loader now signs `AUTH_ABS64`, `AUTH_RELATIVE`, `AUTH_GLOB_DAT`, authenticated RELR slots, and PAC-PLT `JUMP_SLOT` entries using the encoded IA/IB/DA/DB schema. It still fails closed on `AUTH_TLSDESC`, `AUTH_IRELATIVE`, `DT_AARCH64_AUTH_SYM`, `DT_AARCH64_VARIANT_PCS`, and unknown relocation types. Synthetic tests cover the relocation tables and PAuth IDs; the iOS-SDK loader compile check is being rerun for this change.
+The survey now follows `MOD0` dynamic metadata and inventories `RELA`, `JMPREL`, `RELR`, and `DT_AARCH64_AUTH_RELR`. It uses the Arm PAuth ABI's actual relocation numbers, including `R_AARCH64_AUTH_ABS64` (580), `AUTH_RELATIVE` (1041), `AUTH_GLOB_DAT` (1042), `AUTH_TLSDESC` (1043), and `AUTH_IRELATIVE` (1044). The native loader now signs `AUTH_ABS64`, `AUTH_RELATIVE`, `AUTH_GLOB_DAT`, authenticated RELR slots, and PAC-PLT `JUMP_SLOT` entries using the encoded IA/IB/DA/DB schema. It still fails closed on `AUTH_TLSDESC`, `AUTH_IRELATIVE`, `DT_AARCH64_AUTH_SYM`, `DT_AARCH64_VARIANT_PCS`, and unknown relocation types. Synthetic tests cover the relocation tables and PAuth IDs, and the loader passes the iOS-SDK compile check. The diagnostic app compiles the same shared signing-schema decoder, but its physical-device smoke test is still pending.
 
 ### Horizon service boundary
 
