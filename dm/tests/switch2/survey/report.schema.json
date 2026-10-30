@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nxnative.org/schemas/switch2-survey-report.schema.json",
+  "title": "nxnative Switch 2 Homebrew Survey",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "status", "target", "modules", "observations"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "status": { "enum": ["draft", "captured", "reviewed"] },
+    "target": {
+      "type": "object",
+      "required": ["platform", "sdkVersion"],
+      "properties": {
+        "platform": { "const": "Nintendo Switch 2" },
+        "sdkVersion": { "type": ["string", "null"] },
+        "osVersion": { "type": ["string", "null"] },
+        "testProgram": { "type": "string" },
+        "buildHash": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "format", "architecture", "evidence"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "format": { "type": "string" },
+          "architecture": { "type": "string" },
+          "buildId": { "type": ["string", "null"] },
+          "evidence": { "$ref": "#/$defs/evidence" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["area", "name", "value", "confidence", "evidence"],
+        "properties": {
+          "area": { "enum": ["loader", "imports", "svc", "ipc", "memory", "nvn2", "shader", "presentation", "other"] },
+          "name": { "type": "string", "minLength": 1 },
+          "value": {},
+          "confidence": { "enum": ["observed", "inferred", "unknown"] },
+          "evidence": { "$ref": "#/$defs/evidence" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "notes": { "type": "string" }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "required": ["source", "observation"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "offset": { "type": ["string", "null"] },
+        "observation": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
+  }
+}
