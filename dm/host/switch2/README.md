@@ -35,3 +35,7 @@ Use self-built homebrew as the first target. Do not commit firmware, keys, comme
 
 **Status:** service-router foundation implemented; no Switch 2 CMIF service, Horizon SVC implementation, guest launch, or NVN2 renderer is complete yet.
 See [the M3 bring-up plan](../../../docs/switch2-m3-port-plan.md).
+
+## Verified SDK syscall overlap
+
+The pinned HBLauncher Native SDK calls `SVC 0x1e` for `GetSystemTick` and `SVC 0x0b` for `SleepThread`. nxnative's current HLE already dispatches these through `hle_svc.c` and `hle_thread.c`. The console-side probe exercises both and reports the SDK-provided tick frequency and measured elapsed ticks. This confirms an ABI overlap in the SDK source, not yet a successful Switch 2 runtime test; the native console frequency must be measured on hardware.
