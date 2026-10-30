@@ -5,6 +5,7 @@ struct PayloadParserTests {
     static func main() throws {
         try testNRO()
         try testNSO()
+        try testShortNSO()
         try testELF64()
         try testMalformedNRO()
         try testUnknown()
@@ -34,9 +35,23 @@ struct PayloadParserTests {
         put32(0x70, in: &data, at: 0x10); put32(0x8000, in: &data, at: 0x14); put32(0x10, in: &data, at: 0x18)
         put32(0x80, in: &data, at: 0x20); put32(0x9000, in: &data, at: 0x24); put32(8, in: &data, at: 0x28)
         put32(0x90, in: &data, at: 0x30); put32(0xa000, in: &data, at: 0x34); put32(8, in: &data, at: 0x38)
+        for i in 0..<32 { data[0x40 + i] = UInt8(i) }
         let report = try PayloadParser.inspect(data, fileName: "main.nso")
         try expect(report.format == "Nintendo NSO0", "NSO format")
         try expect(report.segments.count == 3, "NSO segment count")
+        try expect(report.buildID == (0..<32).map { String(format: "%02x", $0) }.joined(), "NSO build ID offset")
+        try expect(report.notes.contains("NSO XOM flag is not set."), "NSO XOM note")
+    }
+
+    static func testShortNSO() throws {
+        var data = Data(repeating: 0, count: 0x80)
+        putASCII("NSO0", in: &data, at: 0)
+        do {
+            _ = try PayloadParser.inspect(data, fileName: "truncated.nso")
+            throw TestFailure.failed("Short NSO header should be rejected")
+        } catch is PayloadInspectionError {
+            // Expected: NSO0 requires its complete 0x100-byte header.
+        }
     }
 
     static func testELF64() throws {
