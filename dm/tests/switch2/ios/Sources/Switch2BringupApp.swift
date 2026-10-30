@@ -34,6 +34,7 @@ struct BringupDashboard: View {
                 Group {
                     infoRow("Metal device", renderer.deviceName)
                     infoRow("GPU", renderer.gpuStatus)
+                    infoRow("Pointer authentication", renderer.pacStatus)
                     infoRow("Frames submitted", String(renderer.frameCount))
                     infoRow("Max buffer", renderer.maxBufferLength)
                     infoRow("Recommended working set", renderer.workingSet)
