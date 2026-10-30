@@ -9,6 +9,7 @@
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 #include "hle.h"
+#include "switch2/pauth.h"
 #ifndef DT_AARCH64_AUTH_RELRSZ
 #define DT_AARCH64_AUTH_RELRSZ 0x70000011
 #endif
@@ -227,24 +228,10 @@ static unsigned relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t
 
 
 static uint64_t pauth_sign_pointer(uint64_t value, uint64_t schema, uint64_t place) {
-    uint64_t discriminator = (schema >> 32) & 0xffff;
-    unsigned key = (unsigned)((schema >> 60) & 3);
-    uint64_t modifier = discriminator;
-    if (schema >> 63)
-        modifier = discriminator ? ((discriminator << 48) | (place & 0x0000ffffffffffffULL)) : place;
-#if defined(__aarch64__) || defined(__arm64__)
-    switch (key) {
-    case 0: __asm__ volatile("pacia %0, %1" : "+r"(value) : "r"(modifier)); break;
-    case 1: __asm__ volatile("pacib %0, %1" : "+r"(value) : "r"(modifier)); break;
-    case 2: __asm__ volatile("pacda %0, %1" : "+r"(value) : "r"(modifier)); break;
-    case 3: __asm__ volatile("pacdb %0, %1" : "+r"(value) : "r"(modifier)); break;
-    }
-    return value;
-#else
-    (void)value; (void)modifier; (void)key;
-    die("%s", "AArch64 pointer-authentication relocation requires an ARM64 host");
-    return 0;
-#endif
+    uint64_t signed_value = 0;
+    if (!nx_pauth_sign_elf_pointer(value, schema, place, &signed_value))
+        die("%s", "PAuth relocation requires an ARM64 host with pointer authentication");
+    return signed_value;
 }
 
 // SHT_AARCH64_AUTH_RELR uses RELR bitmaps; each target stores the schema in its high
