@@ -109,7 +109,7 @@ jobs:
 
       - name: Compile and test Switch 2 Horizon HIPC/CMIF boundary
         run: |
-          cc -std=c11 -Wall -Wextra -Werror -pedantic \
+          cc -std=c11 -Wall -Wextra -Werror -pedantic -fsanitize=address,undefined -fno-omit-frame-pointer \
             dm/host/switch2/horizon.c \
             dm/host/switch2/hipc.c \
             dm/host/switch2/tests/horizon_tests.c \
