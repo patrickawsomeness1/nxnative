@@ -1,0 +1,14 @@
+{
+  "id": "nxnative-probe",
+  "name": "nxnative CPU Probe",
+  "description": "Staged ARM64 ABI, timer, logging, and heap smoke test",
+  "version": "0.1.0",
+  "abi": 3,
+  "kind": "native",
+  "assets": [],
+  "limits": {
+    "heap_bytes": 262144,
+    "stack_bytes": 262144,
+    "frames": 1
+  }
+}
