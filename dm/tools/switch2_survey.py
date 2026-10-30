@@ -78,6 +78,8 @@ DYNAMIC_TAGS = {
     11: "DT_SYMENT", 12: "DT_INIT", 20: "DT_PLTREL", 23: "DT_JMPREL",
     25: "DT_INIT_ARRAY", 27: "DT_INIT_ARRAYSZ", 35: "DT_RELRSZ",
     36: "DT_RELR", 37: "DT_RELRENT",
+    0x70000003: "DT_AARCH64_PAC_PLT", 0x70000005: "DT_AARCH64_VARIANT_PCS",
+    0x70000008: "DT_AARCH64_AUTH_SYM",
     0x70000011: "DT_AARCH64_AUTH_RELRSZ",
     0x70000012: "DT_AARCH64_AUTH_RELR",
     0x70000013: "DT_AARCH64_AUTH_RELRENT",
@@ -179,10 +181,13 @@ def dynamic_metadata(module) -> dict:
         one(0x70000012), one(0x70000011), one(0x70000013, 8),
         "DT_AARCH64_AUTH_RELR",
     )
-    supported = {"R_AARCH64_ABS64", "R_AARCH64_GLOB_DAT", "R_AARCH64_JUMP_SLOT", "R_AARCH64_RELATIVE"}
+    supported = {"R_AARCH64_ABS64", "R_AARCH64_GLOB_DAT", "R_AARCH64_JUMP_SLOT", "R_AARCH64_RELATIVE",
+                 "R_AARCH64_AUTH_ABS64", "R_AARCH64_AUTH_RELATIVE", "R_AARCH64_AUTH_GLOB_DAT"}
     unsupported = sorted({name for table in (rela, jmprel) for name in table.get("types", {}) if name not in supported})
-    if auth_relr.get("relocation_slots", 0):
-        unsupported.append("DT_AARCH64_AUTH_RELR")
+    if 0x70000005 in tags:
+        unsupported.append("DT_AARCH64_VARIANT_PCS")
+    if 0x70000008 in tags:
+        unsupported.append("DT_AARCH64_AUTH_SYM")
 
     return {
         "available": True,
@@ -194,6 +199,7 @@ def dynamic_metadata(module) -> dict:
         "jmprel": jmprel,
         "relr": relr,
         "auth_relr": auth_relr,
+        "pac_plt": 0x70000003 in tags,
         "current_loader_unsupported": unsupported,
         "note": "Static metadata only: no relocation is applied and no module code is executed.",
     }
