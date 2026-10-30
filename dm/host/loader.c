@@ -215,15 +215,33 @@ static void register_gates(module_t *m, const char *dir) {
 // Each 8-byte entry: even = a new start offset (relocate it, the pointer moves to the next slot); odd = a bitmap whose bits 1-63 stand for the 63 slots after the pointer, which then moves on by 63 slots.
 // Without it main's GOT and vtables hold module offsets (main's RELA keeps only symbol relocations)
 static unsigned relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t delta) {
-    const uint64_t *e = (const uint64_t *)(m->base + relr); uint64_t *where = NULL; unsigned n = 0;
+    if (relrsz % 8 || relr > m->size || relrsz > m->size - relr)
+        die("%s: DT_RELR table is out of bounds or has an invalid size", m->name);
+    const uint64_t *entries = (const uint64_t *)(m->base + relr);
+    uint64_t where_off = 0;
+    int have_where = 0;
+    unsigned count = 0;
     for (uint64_t i = 0; i < relrsz / 8; i++) {
-        uint64_t v = e[i];
-        if (!(v & 1)) { where = (uint64_t *)(m->base + v); *where++ += delta; n++; continue; }
-        if (!where) die("%s: DT_RELR 位图项前没有起点", m->name);
-        for (unsigned b = 0; (v >>= 1); b++) if (v & 1) { where[b] += delta; n++; }
-        where += 63;
+        uint64_t entry = entries[i];
+        if (!(entry & 1)) {
+            if (entry > m->size - 8) die("%s: DT_RELR target is out of bounds", m->name);
+            where_off = entry;
+            *(uint64_t *)(m->base + where_off) += delta;
+            where_off += 8;
+            have_where = 1;
+            count++;
+            continue;
+        }
+        if (!have_where) die("%s: DT_RELR bitmap appears before a base entry", m->name);
+        for (unsigned bit = 0; (entry >>= 1); bit++) if (entry & 1) {
+            uint64_t slot_off = where_off + (uint64_t)bit * 8;
+            if (slot_off > m->size - 8) die("%s: DT_RELR bitmap target is out of bounds", m->name);
+            *(uint64_t *)(m->base + slot_off) += delta;
+            count++;
+        }
+        where_off += 63 * 8;
     }
-    return n;
+    return count;
 }
 
 
@@ -237,32 +255,39 @@ static uint64_t pauth_sign_pointer(uint64_t value, uint64_t schema, uint64_t pla
 // SHT_AARCH64_AUTH_RELR uses RELR bitmaps; each target stores the schema in its high
 // 32 bits and a signed 32-bit addend in its low 32 bits.
 static unsigned auth_relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t delta) {
-    if (relrsz % 8) die("%s: DT_AARCH64_AUTH_RELRSZ is not a multiple of 8", m->name);
+    if (relrsz % 8 || relr > m->size || relrsz > m->size - relr)
+        die("%s: authenticated RELR table is out of bounds or has an invalid size", m->name);
     const uint64_t *entries = (const uint64_t *)(m->base + relr);
-    uint64_t *where = NULL;
+    uint64_t where_off = 0;
+    int have_where = 0;
     unsigned count = 0;
     for (uint64_t i = 0; i < relrsz / 8; i++) {
         uint64_t entry = entries[i];
         if (!(entry & 1)) {
-            where = (uint64_t *)(m->base + entry);
-            uint64_t encoded = *where;
+            if (entry > m->size - 8) die("%s: authenticated RELR target is out of bounds", m->name);
+            where_off = entry;
+            uint64_t *slot = (uint64_t *)(m->base + where_off);
+            uint64_t encoded = *slot;
             uint64_t schema = encoded & 0xffffffff00000000ULL;
             int32_t addend = (int32_t)(uint32_t)encoded;
-            *where = pauth_sign_pointer(delta + addend, schema, (uint64_t)where);
-            where++;
+            *slot = pauth_sign_pointer(delta + addend, schema, (uint64_t)slot);
+            where_off += 8;
+            have_where = 1;
             count++;
             continue;
         }
-        if (!where) die("%s: authenticated RELR bitmap appears before a base entry", m->name);
+        if (!have_where) die("%s: authenticated RELR bitmap appears before a base entry", m->name);
         for (unsigned bit = 0; (entry >>= 1); bit++) if (entry & 1) {
-            uint64_t *slot = where + bit;
+            uint64_t slot_off = where_off + (uint64_t)bit * 8;
+            if (slot_off > m->size - 8) die("%s: authenticated RELR bitmap target is out of bounds", m->name);
+            uint64_t *slot = (uint64_t *)(m->base + slot_off);
             uint64_t encoded = *slot;
             uint64_t schema = encoded & 0xffffffff00000000ULL;
             int32_t addend = (int32_t)(uint32_t)encoded;
             *slot = pauth_sign_pointer(delta + addend, schema, (uint64_t)slot);
             count++;
         }
-        where += 63;
+        where_off += 63 * 8;
     }
     return count;
 }
