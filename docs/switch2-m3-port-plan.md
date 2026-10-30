@@ -38,13 +38,13 @@ This is a verified **unsigned diagnostic app build**, not a game runtime. It has
 
 ### Pointer-authenticated relocation analysis
 
-The survey now follows `MOD0` dynamic metadata and inventories `RELA`, `JMPREL`, `RELR`, and `DT_AARCH64_AUTH_RELR`. It uses the Arm PAuth ABI's actual relocation numbers, including `R_AARCH64_AUTH_ABS64` (580), `AUTH_RELATIVE` (1041), `AUTH_GLOB_DAT` (1042), `AUTH_TLSDESC` (1043), and `AUTH_IRELATIVE` (1044). The native loader now refuses unknown relocation types and authenticated RELR rather than applying the generic unsigned-pointer fallback. Synthetic tests for these tables and IDs pass in GitHub Actions. The PAC instruction/branch smoke test also compiles in the iOS diagnostic app; no physical-device run has yet been recorded.
+The survey now follows `MOD0` dynamic metadata and inventories `RELA`, `JMPREL`, `RELR`, and `DT_AARCH64_AUTH_RELR`. It uses the Arm PAuth ABI's actual relocation numbers, including `R_AARCH64_AUTH_ABS64` (580), `AUTH_RELATIVE` (1041), `AUTH_GLOB_DAT` (1042), `AUTH_TLSDESC` (1043), and `AUTH_IRELATIVE` (1044). The native loader now signs `AUTH_ABS64`, `AUTH_RELATIVE`, `AUTH_GLOB_DAT`, authenticated RELR slots, and PAC-PLT `JUMP_SLOT` entries using the encoded IA/IB/DA/DB schema. It still fails closed on `AUTH_TLSDESC`, `AUTH_IRELATIVE`, `DT_AARCH64_AUTH_SYM`, `DT_AARCH64_VARIANT_PCS`, and unknown relocation types. Synthetic tests cover the relocation tables and PAuth IDs; the iOS-SDK loader compile check is being rerun for this change.
 
 ### Native execution compatibility work
 
 - Fixed the NSO reader's image-span check so it does not apply the LZ4 expansion-ratio ceiling to ZBIC-compressed modules; added a highly-compressible ZBIC regression case.
 - Added an `XOM` bit to the native module manifest and loader metadata. The loader now seals guest text execute-only only after it has read `MOD0`, parsed dynamic metadata, and applied relocations; the diagnostic hash path skips XOM modules rather than trying to read their text.
-- Added host probes for PAC/AUT, BTI, LSE `LDADDAL`, and remapping/executing a signed `__TEXT` page after requesting execute-only permissions.
+- Added host probes for PAC/AUT across IA/IB/DA/DB keys, PAC-authenticated indirect branching, BTI, LSE `LDADDAL`, and remapping/executing a signed `__TEXT` page after requesting execute-only permissions.
 - The current Switch 1 rewriter still refuses Switch 2 targets and XOM NSOs. The XOM loader plumbing is dormant until a Switch 2-specific rewriter can emit a verified manifest.
 
 These changes are compile-checked in the successful iOS CI run, but the PAC/LSE/XOM probes have not yet been run on the user's physical M3 iPad Air or A19 Pro iPhone.
