@@ -41,6 +41,46 @@ def make_nso(flags=0x40 | 0x38):
     return bytes(header + body)
 
 
+def make_nso_with_mod0():
+    text = bytearray(0x1000)
+    struct.pack_into("<I", text, 4, 0x100)
+    text[0x100:0x104] = b"MOD0"
+    struct.pack_into("<i", text, 0x104, 0x100)  # dynamic section at image +0x200
+    dynamic = [
+        (6, 0x1200), (5, 0x1100), (7, 0x1500), (8, 48), (9, 24),
+        (23, 0x1530), (2, 24), (20, 7), (36, 0x1580), (35, 8),
+        (37, 8), (0, 0),
+    ]
+    for index, (tag, value) in enumerate(dynamic):
+        struct.pack_into("<qQ", text, 0x200 + index * 16, tag, value)
+
+    ro = bytearray(0x1000)
+    strings = b"\\0nn::os::CreateThread\\0nn::vi::OpenDisplay\\0"
+    ro[0x100:0x100 + len(strings)] = strings
+    struct.pack_into("<IBBHQQ", ro, 0x200 + 24, 1, 0x12, 0, 0, 0, 0)
+    struct.pack_into("<IBBHQQ", ro, 0x200 + 48, 22, 0x12, 0, 0, 0, 0)
+    struct.pack_into("<QQq", ro, 0x500, 0x2100, 1027, 0x1234)
+    struct.pack_into("<QQq", ro, 0x518, 0x2108, 1036, 0x55)  # AUTH_RELATIVE
+    struct.pack_into("<QQq", ro, 0x530, 0x2110, (2 << 32) | 1026, 0)
+    struct.pack_into("<Q", ro, 0x580, 0x2118)  # one RELR base entry
+    data = bytes(0x1000)
+
+    header = bytearray(0x100)
+    header[:4] = b"NSO0"
+    header[0x40:0x60] = bytes(range(32))
+    struct.pack_into("<I", header, 0x0C, 0x38)
+    struct.pack_into("<IIII", header, 0x90, 0x100, len(strings), 0x200, 72)
+    body = bytearray()
+    for index, payload in enumerate((bytes(text), bytes(ro), data)):
+        file_offset = 0x100 + len(body)
+        memory_offset = index * 0x1000
+        struct.pack_into("<III", header, 0x10 + index * 0x10, file_offset, memory_offset, len(payload))
+        struct.pack_into("<I", header, 0x60 + index * 4, len(payload))
+        header[0xA0 + index * 0x20:0xC0 + index * 0x20] = hashlib.sha256(payload).digest()
+        body.extend(payload)
+    return bytes(header + body)
+
+
 class Switch2SurveyTests(unittest.TestCase):
     def test_detects_xom_pac_bti_and_svc(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -58,6 +98,18 @@ class Switch2SurveyTests(unittest.TestCase):
             [item["name"] for item in report["dynamic_symbols"]["undefined_imports"]],
             ["nn::os::CreateThread", "nn::vi::OpenDisplay"],
         )
+
+    def test_surveys_mod0_relocation_types_including_pointer_auth(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "dynamic-main.nso"
+            path.write_bytes(make_nso_with_mod0())
+            report = switch2_survey.survey(path)
+        metadata = report["dynamic_metadata"]
+        self.assertTrue(metadata["available"], metadata)
+        self.assertEqual(metadata["rela"]["types"]["R_AARCH64_RELATIVE"], 1)
+        self.assertEqual(metadata["rela"]["types"]["R_AARCH64_AUTH_RELATIVE"], 1)
+        self.assertEqual(metadata["jmprel"]["types"]["R_AARCH64_JUMP_SLOT"], 1)
+        self.assertEqual(metadata["relr"]["relocation_slots"], 1)
 
     def test_rejects_non_nso(self):
         with tempfile.TemporaryDirectory() as tmp:
