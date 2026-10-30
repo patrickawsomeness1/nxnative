@@ -7,7 +7,9 @@ Switch 2's NSO0 header documents flag bit 6 as execute-only memory (XOM) and bit
 It reports:
 - NSO flags, including per-segment compression/hash flags, execute-only text (XOM), and ZBIC compression;
 - segment offsets/sizes and module ID;
-- static AArch64 instruction counts and samples for PAC/authentication, authenticated branches, BTI, SVCs, LSE atomics, and selected system-register accesses.
+- NSO dynamic symbols and undefined imports;
+- MOD0 dynamic tags plus RELA, PLT/JMPREL, RELR, and authenticated RELR relocation tables, including PAuth relocation IDs and a list of types the current loader cannot safely apply;
+- static AArch64 instruction counts and samples for PAC/authentication, authenticated branches, BTI, SVCs, LSE atomics, and selected system-register accesses (`CTR_EL0`, timer registers, and thread-pointer registers).
 
 ## Run
 
@@ -22,4 +24,4 @@ python3 dm/tools/switch2_survey.py /path/to/authorized/main -o main.switch2-surv
 
 This is a survey, not a loader or execution test. Static disassembly can encounter embedded data and cannot establish runtime service calls, SVC semantics, PAC key behaviour, or graphics API usage. Keep Switch 2 observations separate from original Switch profiles until verified.
 
-The current Switch 1 rewriter is intentionally guarded: `DM_TARGET=switch2` makes it stop with an explicit unsupported-target error, and it refuses NSOs that request XOM because the existing iOS remapper does not preserve execute-only permissions. Do not remove these checks to force a build. Switch 2 support requires a separate, tested rewrite/loader profile.
+The current Switch 1 rewriter is intentionally guarded: `DM_TARGET=switch2` makes it stop with an explicit unsupported-target error, and it refuses NSOs that request XOM. The native loader has dormant per-module XOM sealing support, but the signed-page XOM probe has not yet been run on a physical iPad/iPhone. The loader also rejects unimplemented relocation types, including PAuth relocations and authenticated RELR, rather than treating them as ordinary pointers. Do not remove these checks to force a build. Switch 2 support requires a separate, tested rewrite/loader profile with correct signing-schema handling.
