@@ -27,18 +27,22 @@ Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 pat
 
 ### Verified iOS bring-up build
 
-GitHub Actions run [#41144914667](https://github.com/patrickawsomeness1/nxnative/actions/runs/41144914667) completed successfully on 2026-10-30:
+GitHub Actions run [#41145688845](https://github.com/patrickawsomeness1/nxnative/actions/runs/41145688845) completed successfully on 2026-10-30:
 - Swift payload parser tests passed.
 - XcodeGen generated the iOS project.
 - The native iOS `loader.c` XOM path passed an iOS-SDK syntax/type check.
-- Xcode compiled the universal arm64 diagnostic app, including PAC/BTI, LSE atomic, and signed-page XOM probe code.
-- CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020437564`).
+- Xcode compiled the universal arm64 diagnostic app, including PAC IA/IB/DA/DB, authenticated branch, LSE atomic, and signed-page XOM probe code.
+- CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020572072`).
 
 This is a verified **unsigned diagnostic app build**, not a game runtime. It has not been signed for the user's account, installed on the M3 iPad Air or A19 Pro iPhone 17 Pro Max, or tested with a Switch 2 executable. A successful build proves the app and ARM64 probe compile, not that Switch 2 guest code executes.
 
 ### Pointer-authenticated relocation analysis
 
 The survey now follows `MOD0` dynamic metadata and inventories `RELA`, `JMPREL`, `RELR`, and `DT_AARCH64_AUTH_RELR`. It uses the Arm PAuth ABI's actual relocation numbers, including `R_AARCH64_AUTH_ABS64` (580), `AUTH_RELATIVE` (1041), `AUTH_GLOB_DAT` (1042), `AUTH_TLSDESC` (1043), and `AUTH_IRELATIVE` (1044). The native loader now signs `AUTH_ABS64`, `AUTH_RELATIVE`, `AUTH_GLOB_DAT`, authenticated RELR slots, and PAC-PLT `JUMP_SLOT` entries using the encoded IA/IB/DA/DB schema. It still fails closed on `AUTH_TLSDESC`, `AUTH_IRELATIVE`, `DT_AARCH64_AUTH_SYM`, `DT_AARCH64_VARIANT_PCS`, and unknown relocation types. Synthetic tests cover the relocation tables and PAuth IDs; the iOS-SDK loader compile check is being rerun for this change.
+
+### Horizon service boundary
+
+Added `dm/host/switch2/horizon.c/.h` as a Switch 2-only service registry and bounded CMIF framing layer. The synthetic echo-service tests pass in CI. This deliberately does not claim Horizon compatibility: outer HIPC/TIPC transport, handle descriptors, domain objects, `sm:` session lifecycle, actual SVC numbers, and Nintendo result mappings remain unimplemented pending evidence from a native Switch 2 homebrew trace.
 
 ### Native execution compatibility work
 
