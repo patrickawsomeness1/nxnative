@@ -59,11 +59,11 @@ final class MetalSmokeRenderer: NSObject, ObservableObject, MTKViewDelegate {
         let signedPointer = nx_pac_sign(pacInput, pacModifier)
         let authenticatedPointer = nx_pac_auth(signedPointer, pacModifier)
         if signedPointer != pacInput && authenticatedPointer == pacInput {
-            pacStatus = "PAC sign/auth round-trip passed; \(branchStatus); \(keyStatus)"
+            pacStatus = "PAC sign/auth round-trip passed; \(branchStatus); \(keyStatus); \(schemaStatus)"
         } else if authenticatedPointer != pacInput {
-            pacStatus = "PAC round-trip failed; \(branchStatus); \(keyStatus)"
+            pacStatus = "PAC round-trip failed; \(branchStatus); \(keyStatus); \(schemaStatus)"
         } else {
-            pacStatus = "PAC not detected (instructions may be treated as hints); \(branchStatus); \(keyStatus)"
+            pacStatus = "PAC not detected (instructions may be treated as hints); \(branchStatus); \(keyStatus); \(schemaStatus)"
         }
         let xomResult = nx_xom_smoke()
         xomStatus = xomResult == 1
