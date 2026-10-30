@@ -161,6 +161,7 @@ static void read_layout(module_t *m, const char *dir) {
         else if (!strcmp(key, "TEXT_END")) m->text_end = v;
         else if (!strcmp(key, "RO_OFF")) m->ro_off = v;
         else if (!strcmp(key, "DATA_OFF")) m->data_off = v;
+        else if (!strcmp(key, "XOM")) { if (v > 1) die("%s: XOM 标志无效", path); m->xom = (int)v; seen |= 1u << 8; }
         else if (!strcmp(key, "BUILD_ID")) sscanf(line, "# %*s %32s", m->build_id);
         else for (int k = 0; k < 8; k++) {
             size_t n = strlen(kn[k]);
@@ -170,7 +171,7 @@ static void read_layout(module_t *m, const char *dir) {
         }
     }
     fclose(f);
-    if (!m->patch_off || m->key_page_off % 0x4000 || m->key_page_size != 0x4000 || seen != 0xff)
+    if (!m->patch_off || m->key_page_off % 0x4000 || m->key_page_size != 0x4000 || seen != 0x1ff)
         die("%s: 产物是旧改写器出的，换成当前代号（dm/PRODUCT）的产物", path);
     if (m->patch_off < 0 && (!m->image_size || !m->file_image_len || m->file_image_len % 0x4000 || m->patch_off % 0x4000 || m->key_page_off + m->key_page_size > m->image_size))
         die("%s: 补丁区在首址前，但 IMAGE_SIZE / FILE_IMAGE_LEN 缺失或不对 | patch area before the base, but IMAGE_SIZE / FILE_IMAGE_LEN missing or wrong", path);
@@ -262,6 +263,7 @@ void loader_hash_log(void) {
     if (!getenv("DM_LOADHASH")) return;
     for (int k = 0; k < g_nmod; k++) {
         module_t *m = &g_mod[k];
+        if (m->xom) { LOG("DM_LOADHASH %s skipped: execute-only text", m->name); continue; }
         uint8_t *cp = malloc(m->size); memcpy(cp, m->base, m->size);
         uint64_t rela = 0, relasz = 0, jmprel = 0, pltsz = 0, relr = 0, relrsz = 0;
         for (const Elf64_Dyn *d = m->dyn; d->d_tag; d++) switch (d->d_tag) {
@@ -394,6 +396,24 @@ static void map_image(module_t *m, const char *dir) {
 }
 #endif
 
+// XOM is applied only after MOD0/dynamic metadata and all relocations have been consumed.
+// This matters because the NSO's MOD0 pointer is in the first words of .text.
+static void seal_xom_text(void) {
+    for (int i = 0; i < g_nmod; i++) {
+        module_t *m = &g_mod[i];
+        if (!m->xom) continue;
+        uint64_t length = (m->text_end + 0x3FFF) & ~0x3FFFull;
+        if (!length || length > m->size) die("%s: XOM text range is invalid", m->name);
+#if TARGET_OS_IPHONE
+        kern_return_t kr = vm_protect(mach_task_self(), (vm_address_t)m->base, (vm_size_t)length, FALSE, VM_PROT_EXECUTE);
+        if (kr != KERN_SUCCESS) die("%s: cannot enforce execute-only text (vm_protect=%d)", m->name, kr);
+#else
+        if (mprotect(m->base, length, PROT_EXEC)) die("%s: cannot enforce execute-only text (mprotect)", m->name);
+#endif
+        LOG("%s: execute-only text sealed (%#llx bytes)", m->name, (unsigned long long)length);
+    }
+}
+
 void load_modules(const char *dir, const char **names, int n) {
     // Map everything and parse the symbol tables first, then relocate all at once (cross-module symbols must all be in place first)
     // DM_BOOTPROF: breakdown of ① host loading (milliseconds), to set the upper bound for ③ pre-relocation / mmap
@@ -417,6 +437,7 @@ void load_modules(const char *dir, const char **names, int n) {
     t = now_ns(); for (int i = 0; i < g_nmod; i++) relocate(&g_mod[i]); tr = now_ns() - t;
     force_check();
     { void hlecount_seal(void); hlecount_seal(); }   // DM_HLECOUNT: relocation done, seal the counting stub pages as read-only executable
+    seal_xom_text();  // guest .text becomes unreadable only after all loader reads are complete
     if (getenv("DM_SYMCHECK")) LOG("DM_SYMCHECK：装载期共核 %lu 次符号查询，哈希与线性不一致 %lu", g_symchk_n, g_symchk_bad);
     if (g_flag.bootprof) LOG("① 细分：映射（读 + 拷 + 封页）%.1f ms、解析动态段 %.1f ms、门注册 %.1f ms、重定位 + 强制接管 %.1f ms，合计 %.1f ms",
                              tm / 1e6, tp / 1e6, tg / 1e6, tr / 1e6, (now_ns() - t0) / 1e6);
