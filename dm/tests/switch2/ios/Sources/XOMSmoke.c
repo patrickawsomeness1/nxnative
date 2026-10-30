@@ -13,7 +13,9 @@ int nx_lse_smoke(void) {
 // Returns 1 only when a signed __TEXT page can be remapped, reduced to execute-only,
 // and executed successfully. Negative values identify the failed Mach operation.
 int nx_xom_smoke(void) {
-    const vm_size_t page = 0x4000; // iOS/iPadOS arm64 host page size
+    vm_size_t page = 0;
+    host_page_size(mach_host_self(), &page);
+    if (page != 0x4000) return -4000 - (int)page; // nxnative's embedded sections are aligned to 16 KB
     vm_address_t alias = 0;
     vm_prot_t current = 0, maximum = 0;
     kern_return_t kr = vm_remap(
