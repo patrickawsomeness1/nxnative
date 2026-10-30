@@ -89,7 +89,7 @@ def load(d, name='module'):
     else:
         raise Error(f'{name}: not an NSO or NRO (magic {bytes(d[:4])!r})')
     end = stored[2][1] + stored[2][2]
-    if end > len(d) * LZ4_MAX_RATIO: raise Error(f'{name}: the segments span {end:#x} bytes, more than a file of {len(d):#x} bytes can fill (a gap of zeros between them)')
+    if not flags & NSO_ZSTD and end > len(d) * LZ4_MAX_RATIO: raise Error(f'{name}: the segments span {end:#x} bytes, more than a file of {len(d):#x} bytes can fill (a gap of zeros between them)')
     img = bytearray(end)
     for i, ((fo, mo, sz), c) in enumerate(zip(stored, csz)):
         raw = d[fo:fo + c]
