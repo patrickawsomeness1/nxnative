@@ -9,6 +9,11 @@
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 #include "hle.h"
+#ifndef DT_AARCH64_AUTH_RELRSZ
+#define DT_AARCH64_AUTH_RELRSZ 0x70000011
+#define DT_AARCH64_AUTH_RELR 0x70000012
+#define DT_AARCH64_AUTH_RELRENT 0x70000013
+#endif
 
 module_t g_mod[MAX_MOD];
 int g_nmod;
@@ -218,6 +223,7 @@ static unsigned relr_apply(module_t *m, uint64_t relr, uint64_t relrsz, uint64_t
 
 static void relocate(module_t *m) {
     uint64_t rela = 0, relasz = 0, jmprel = 0, pltsz = 0, relr = 0, relrsz = 0;
+    uint64_t auth_relr = 0, auth_relrsz = 0, auth_relrent = 0;
     for (const Elf64_Dyn *d = m->dyn; d->d_tag; d++) switch (d->d_tag) {
         case DT_RELA: rela = d->d_un.d_ptr; break;
         case DT_RELASZ: relasz = d->d_un.d_val; break;
@@ -225,8 +231,12 @@ static void relocate(module_t *m) {
         case DT_PLTRELSZ: pltsz = d->d_un.d_val; break;
         case DT_RELR: relr = d->d_un.d_ptr; break;
         case DT_RELRSZ: relrsz = d->d_un.d_val; break;
+        case DT_AARCH64_AUTH_RELR: auth_relr = d->d_un.d_ptr; break;
+        case DT_AARCH64_AUTH_RELRSZ: auth_relrsz = d->d_un.d_val; break;
+        case DT_AARCH64_AUTH_RELRENT: auth_relrent = d->d_un.d_val; break;
     }
     int cnt[3] = {0}, nint = 0;
+    if (auth_relr || auth_relrsz || auth_relrent) die("%s: authenticated DT_AARCH64_AUTH_RELR is not implemented; refusing to load", m->name);
     unsigned nrelr = relr ? relr_apply(m, relr, relrsz, (uint64_t)m->base) : 0;
     const Elf64_Rela *tabs[2] = {(const Elf64_Rela *)(m->base + rela), (const Elf64_Rela *)(m->base + jmprel)};
     uint64_t sizes[2] = {relasz, pltsz};
@@ -236,6 +246,8 @@ static void relocate(module_t *m) {
             uint64_t *where = (uint64_t *)(m->base + r->r_offset);
             unsigned type = ELF64_R_TYPE(r->r_info), si = ELF64_R_SYM(r->r_info);
             if (type == R_AARCH64_RELATIVE) { *where = (uint64_t)m->base + r->r_addend; cnt[0]++; continue; }
+            if (type != R_AARCH64_ABS64 && type != R_AARCH64_GLOB_DAT && type != R_AARCH64_JUMP_SLOT)
+                die("%s: unsupported AArch64 relocation type %u; refusing unsafe generic relocation", m->name, type);
             const Elf64_Sym *s = &m->symtab[si];
             uint64_t v = (uint64_t)force_lookup(m->strtab + s->st_name);
             // Symbols the module defines itself are also looked up globally in load order (the ELF default; Horizon's rtld does the same): the definition of an earlier-loaded module overrides a later one; only local / non-default visibility binds to itself.
