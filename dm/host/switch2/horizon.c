@@ -70,8 +70,9 @@ nx_horizon_status nx_horizon_cmif_dispatch(
     if (!ctx || !service_name || !cmif_request || !cmif_response ||
         !cmif_response_size) return NX_HORIZON_E_ARGUMENT;
     if (cmif_request_size < NX_CMIF_HEADER_SIZE) return NX_HORIZON_E_BUFFER;
+    const uint32_t version = nx_read_le32(cmif_request + 4);
     if (nx_read_le32(cmif_request) != NX_CMIF_REQUEST_MAGIC ||
-        nx_read_le32(cmif_request + 4) != NX_CMIF_VERSION)
+        version > NX_CMIF_VERSION_CONTEXT)
         return NX_HORIZON_E_COMMAND;
     if (cmif_response_capacity < NX_CMIF_HEADER_SIZE)
         return NX_HORIZON_E_BUFFER;
@@ -88,7 +89,7 @@ nx_horizon_status nx_horizon_cmif_dispatch(
     if (status != NX_HORIZON_OK) return status;
 
     nx_write_le32(cmif_response, NX_CMIF_RESPONSE_MAGIC);
-    nx_write_le32(cmif_response + 4, NX_CMIF_VERSION);
+    nx_write_le32(cmif_response + 4, version);
     nx_write_le32(cmif_response + 8, 0); // success only; no guessed result mapping
     nx_write_le32(cmif_response + 12, token);
     *cmif_response_size = NX_CMIF_HEADER_SIZE + payload_size;
