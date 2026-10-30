@@ -86,7 +86,6 @@ nx_hipc_status nx_hipc_parse_request(
         out->message_type <= NX_HIPC_CMIF_CONTROL_WITH_CONTEXT) {
         if (!out->data_words || out->data_size > buffer_size)
             return NX_HIPC_E_BUFFER;
-        if (offset < out->data_size) return NX_HIPC_E_HEADER;
         const size_t data_offset = (size_t)(out->data_words - buffer);
         if (data_offset > SIZE_MAX - 15u) return NX_HIPC_E_BUFFER;
         const size_t cmif_offset = (data_offset + 15u) & ~(size_t)15u;
