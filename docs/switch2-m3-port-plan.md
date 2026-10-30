@@ -1,6 +1,6 @@
 # Switch 2 on iPad Air M3 — bring-up plan
 
-Status: **experimental bring-up; native ARM64 execution is the product goal**. The iOS Metal dashboard and optional HBLauncher diagnostic build in CI, but neither executes Switch 2 guest code. No Switch 2 homebrew or retail game has been executed by this repository. The public nxnative codebase is a Nintendo Switch (Tegra X1 / NVN) native-execution project. Switch 2 support is a separate port.
+Status: **experimental bring-up; native ARM64 execution is the product goal**. The iOS CPU/GPU diagnostic app and Switch 2 HBLauncher CPU probe both compile in CI, but neither has yet been run on the target iPhone/iPad or Switch 2 console. No Switch 2 homebrew or retail game has been executed by this repository. The public nxnative codebase is a Nintendo Switch (Tegra X1 / NVN) native-execution project. Switch 2 support is a separate port.
 
 Target devices: **iPad Air (M3)** and **iPhone 17 Pro Max (A19 Pro)**. Both iPadOS and iOS are first-class targets, sharing one Switch 2 runtime with device-specific profiles. A Mac build may be used as a development/test host, but it is not the product target.
 
@@ -35,6 +35,12 @@ GitHub Actions run [#41145688845](https://github.com/patrickawsomeness1/nxnative
 - CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020572072`).
 
 This is a verified **unsigned diagnostic app build**, not a game runtime. It has not been signed for the user's account, installed on the M3 iPad Air or A19 Pro iPhone 17 Pro Max, or tested with a Switch 2 executable. A successful build proves the app and ARM64 probe compile, not that Switch 2 guest code executes.
+
+### Switch 2 console-side CPU probe
+
+GitHub Actions run [#41146527448](https://github.com/patrickawsomeness1/nxnative/actions/runs/41146527448) successfully cross-built the self-authored `nxnative-probe` app against the pinned HBLauncher Native SDK and uploaded artifact `nxnative-switch2-hblauncher-probe` (artifact ID `13021431505`). It runs in stages: ABI/context writeback, stack alignment, `CNTFRQ_EL0` versus SDK `tick_hz` plus a `CNTVCT` sample, SDK logging, heap read/write, formatted logging, PAC round trips for IA/IB/DA/DB, PAC-authenticated `BRAA` into a `BTI j` landing pad, and an LSE `LDADDAL` atomic. A zero stage argument runs all stages; the results are written back through `ctx->args[2..5]` and the `NXP2` frame marker.
+
+This is a **cross-built console probe package**, not a successful console execution. It has not yet been launched on Switch 2. It does not test retail NSO loading, actual Switch 2 SVC/Horizon semantics, NVN2, or game execution.
 
 ### Pointer-authenticated relocation analysis
 
