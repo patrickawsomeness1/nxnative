@@ -2,6 +2,22 @@
 #include <stdint.h>
 
 extern uint64_t nx_xom_probe_page_start(void);
+extern uint64_t nx_pac_sign(uint64_t pointer, uint64_t modifier);
+extern uint64_t nx_pac_auth(uint64_t pointer, uint64_t modifier);
+extern uint64_t nx_pac_sign_ib(uint64_t pointer, uint64_t modifier);
+extern uint64_t nx_pac_auth_ib(uint64_t pointer, uint64_t modifier);
+extern uint64_t nx_pac_sign_da(uint64_t pointer, uint64_t modifier);
+extern uint64_t nx_pac_auth_da(uint64_t pointer, uint64_t modifier);
+extern uint64_t nx_pac_sign_db(uint64_t pointer, uint64_t modifier);
+extern uint64_t nx_pac_auth_db(uint64_t pointer, uint64_t modifier);
+
+int nx_pac_all_keys_smoke(void) {
+    const uint64_t pointer = 0x12345678, modifier = 0x42;
+    return nx_pac_auth(nx_pac_sign(pointer, modifier), modifier) == pointer &&
+           nx_pac_auth_ib(nx_pac_sign_ib(pointer, modifier), modifier) == pointer &&
+           nx_pac_auth_da(nx_pac_sign_da(pointer, modifier), modifier) == pointer &&
+           nx_pac_auth_db(nx_pac_sign_db(pointer, modifier), modifier) == pointer ? 1 : 0;
+}
 extern uint64_t nx_lse_add(uint64_t *address, uint64_t value);
 
 int nx_lse_smoke(void) {
