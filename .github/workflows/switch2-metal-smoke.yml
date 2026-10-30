@@ -16,6 +16,9 @@ on:
       - "dm/host/switch2/**"
       - "dm/host/loader.c"
       - "dm/host/switch2/pauth.h"
+      - "dm/host/switch2/hipc.c"
+      - "dm/host/switch2/hipc.h"
+      - "dm/host/switch2/tests/horizon_tests.c"
       - "dm/host/dm.h"
       - "dm/host/Makefile"
       - ".github/workflows/switch2-metal-smoke.yml"
@@ -104,10 +107,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Compile and test isolated Horizon service boundary
+      - name: Compile and test Switch 2 Horizon HIPC/CMIF boundary
         run: |
           cc -std=c11 -Wall -Wextra -Werror -pedantic \
             dm/host/switch2/horizon.c \
+            dm/host/switch2/hipc.c \
             dm/host/switch2/tests/horizon_tests.c \
             -o /tmp/nx-horizon-tests
           /tmp/nx-horizon-tests
