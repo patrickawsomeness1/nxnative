@@ -10,6 +10,10 @@ extern "C" {
 
 #define NX_HORIZON_MAX_SERVICES 32
 #define NX_HORIZON_MAX_NAME 64
+#define NX_CMIF_HEADER_SIZE 16u
+#define NX_CMIF_VERSION 1u
+#define NX_CMIF_REQUEST_MAGIC 0x49434653u /* SFCI */
+#define NX_CMIF_RESPONSE_MAGIC 0x4f434653u /* SFCO */
 
 // These are host-internal status values, NOT Nintendo nn::Result values.
 typedef enum {
@@ -47,6 +51,15 @@ nx_horizon_status nx_horizon_dispatch(
     const uint8_t *request, size_t request_size,
     uint8_t *response, size_t response_capacity, size_t *response_size);
 size_t nx_horizon_service_count(const nx_horizon_context *ctx);
+// CMIF framing only: the enclosing HIPC/TIPC transport and Nintendo result
+// domain mapping are deliberately outside this API. A handler error is returned
+// locally; no guessed Nintendo result code is serialized.
+nx_horizon_status nx_horizon_cmif_dispatch(
+    nx_horizon_context *ctx, const char *service_name,
+    const uint8_t *cmif_request, size_t cmif_request_size,
+    uint8_t *cmif_response, size_t cmif_response_capacity,
+    size_t *cmif_response_size);
+
 
 #ifdef __cplusplus
 }
