@@ -27,20 +27,20 @@ Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 pat
 
 ### Verified iOS bring-up build
 
-GitHub Actions run [#41146707777](https://github.com/patrickawsomeness1/nxnative/actions/runs/41146707777) completed successfully on 2026-10-30:
+GitHub Actions run [#41147362528](https://github.com/patrickawsomeness1/nxnative/actions/runs/41147362528) completed successfully on 2026-10-30:
 - Swift payload parser tests passed.
 - XcodeGen generated the iOS project.
 - The native iOS `loader.c` XOM path passed an iOS-SDK syntax/type check.
 - Xcode compiled the universal arm64 diagnostic app, including PAC IA/IB/DA/DB, authenticated branch, LSE atomic, and signed-page XOM probe code.
-- CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020708287`).
+- CI packaged and uploaded `Switch2Bringup-unsigned-IPA` (artifact ID `13020749435`).
 
 This is a verified **unsigned diagnostic app build**, not a game runtime. It has not been signed for the user's account, installed on the M3 iPad Air or A19 Pro iPhone 17 Pro Max, or tested with a Switch 2 executable. A successful build proves the app and ARM64 probe compile, not that Switch 2 guest code executes.
 
 ### Switch 2 console-side CPU probe
 
-GitHub Actions run [#41146707777](https://github.com/patrickawsomeness1/nxnative/actions/runs/41146707777) successfully cross-built the self-authored `nxnative-probe` app against the pinned HBLauncher Native SDK and uploaded artifact `nxnative-switch2-hblauncher-probe` (artifact ID `13021487056`). It runs in stages: ABI/context writeback, stack alignment, `GetSystemTick` (SVC `0x1e`) and `SleepThread` (SVC `0x0b`) with SDK `tick_hz` and measured elapsed ticks, SDK logging, heap read/write, formatted logging, PAC round trips for IA/IB/DA/DB, PAC-authenticated `BRAA` into a `BTI j` landing pad, and an LSE `LDADDAL` atomic. A zero stage argument runs all stages; the results are written back through `ctx->args[2..5]` and the `NXP2` frame marker.
+GitHub Actions run [#41146707777](https://github.com/patrickawsomeness1/nxnative/actions/runs/41146707777) successfully cross-built the self-authored `nxnative-probe` app against the pinned HBLauncher Native SDK and uploaded artifact `nxnative-switch2-hblauncher-probe` (artifact ID `13020664497`). It runs in stages: ABI/context writeback, stack alignment, `GetSystemTick` (SVC `0x1e`) and `SleepThread` (SVC `0x0b`) with SDK `tick_hz` and measured elapsed ticks, SDK logging, heap read/write, formatted logging, PAC round trips for IA/IB/DA/DB, PAC-authenticated `BRAA` into a `BTI j` landing pad, and an LSE `LDADDAL` atomic. A zero stage argument runs all stages; the results are written back through `ctx->args[2..5]` and the `NXP2` frame marker.
 
-This is a **cross-built console probe package**, not a successful console execution. It has not yet been launched on Switch 2. It does not test retail NSO loading, actual Switch 2 SVC/Horizon semantics, NVN2, or game execution.
+This is a **cross-built console probe package**, not a successful console execution. It has not yet been launched on Switch 2. It exercises the two SVC numbers observed in the pinned SDK source, but does not yet validate them on hardware or test retail NSO loading, full Horizon service behavior, NVN2, or game execution.
 
 ### Pointer-authenticated relocation analysis
 
@@ -52,7 +52,7 @@ The pinned HBLauncher Native SDK uses `SVC 0x1e` for `GetSystemTick` and `SVC 0x
 
 ### Horizon service boundary
 
-Added `dm/host/switch2/horizon.c/.h` as a Switch 2-only service registry and bounded CMIF framing layer. The synthetic echo-service tests pass in CI. This deliberately does not claim Horizon compatibility: outer HIPC/TIPC transport, handle descriptors, domain objects, `sm:` session lifecycle, actual SVC numbers, and Nintendo result mappings remain unimplemented pending evidence from a native Switch 2 homebrew trace.
+Added `dm/host/switch2/horizon.c/.h` as a Switch 2-only service registry and bounded CMIF v0/v1 framing layer. Added `hipc.c/.h` to parse HIPC headers, special headers/PIDs, handle and buffer descriptor ranges, data words, receive-static lists, and aligned CMIF payloads. `nx_horizon_session_hipc_dispatch` now round-trips simple descriptor-free CMIF requests through an internal session and builds a HIPC response; parser, bounds, session-wrap, and end-to-end echo tests pass in CI. This is still not full Horizon compatibility: kernel SVC handle translation, descriptor mapping/transfer, domain objects, TIPC, `sm:` service-manager lifecycle, and Nintendo result mappings remain unimplemented pending native Switch 2 traces.
 
 ### Native execution compatibility work
 
