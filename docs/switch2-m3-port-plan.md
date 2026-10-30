@@ -10,7 +10,7 @@ The existing renderer in `dm/gfx/nvn/` takes over the original Switch NVN interf
 
 The existing Horizon host is also not automatically a Switch 2 host. Loader metadata, SVC behaviour, kernel objects, IPC services, filesystem interfaces, and process capabilities must be surveyed from a lawful homebrew test environment before adding compatibility code.
 
-## Execution architecture correction\n\nThe product is a **native ARM64 compatibility runtime**, not a full-system emulator or a replacement homebrew launcher. Compatible guest AArch64 code should run directly on the Apple CPU; the runtime supplies the Switch 2 loader/Horizon ABI and translates the NVIDIA graphics boundary to Metal. iOS code-signing restrictions on arbitrary imported executable pages are a first-order feasibility gate, especially for a no-JIT IPA. The implementation strategy and constraints are documented in [the native ARM64 runtime architecture](switch2-native-arm64-runtime.md).\n\n## Proposed architecture
+## Execution architecture correction\n\nThe product is a **native ARM64 compatibility runtime**, not a full-system emulator or a replacement homebrew launcher. Follow nxnative's existing no-JIT design: rewrite guest code offline, embed its executable pages into the signed app's `__TEXT` segment, and use the iOS loader's `vm_remap` path to map those signed pages at the guest's expected addresses. Guest ARM64 code then executes directly on Apple CPU cores. Reuse the existing loader and build pipeline where the Switch 2 ABI permits; keep Switch 1 behaviour intact. Details: [native ARM64 runtime architecture](switch2-native-arm64-runtime.md).\n\n## Proposed architecture
 
 Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 path:
 
@@ -55,7 +55,7 @@ Exit criterion: a written ABI/API survey with evidence for every compatibility r
 
 Exit criterion: the homebrew test reaches its entry point and completes basic OS calls without entering the graphics path.
 
-### 3. NVN2 Metal smoke test
+### 3. NVN2-to-Metal graphics translation
 
 Implement in this order:
 
