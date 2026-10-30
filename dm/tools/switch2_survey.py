@@ -78,15 +78,18 @@ DYNAMIC_TAGS = {
     11: "DT_SYMENT", 12: "DT_INIT", 20: "DT_PLTREL", 23: "DT_JMPREL",
     25: "DT_INIT_ARRAY", 27: "DT_INIT_ARRAYSZ", 35: "DT_RELRSZ",
     36: "DT_RELR", 37: "DT_RELRENT",
+    0x70000011: "DT_AARCH64_AUTH_RELRSZ",
+    0x70000012: "DT_AARCH64_AUTH_RELR",
+    0x70000013: "DT_AARCH64_AUTH_RELRENT",
 }
 RELOCATION_TYPES = {
-    257: "R_AARCH64_ABS64", 1025: "R_AARCH64_GLOB_DAT",
-    1026: "R_AARCH64_JUMP_SLOT", 1027: "R_AARCH64_RELATIVE",
-    1028: "R_AARCH64_TLS_DTPMOD64", 1029: "R_AARCH64_TLS_DTPREL64",
-    1030: "R_AARCH64_TLS_TPREL64", 1031: "R_AARCH64_TLSDESC",
-    1032: "R_AARCH64_IRELATIVE", 1033: "R_AARCH64_AUTH_ABS64",
-    1034: "R_AARCH64_AUTH_GLOB_DAT", 1035: "R_AARCH64_AUTH_JUMP_SLOT",
-    1036: "R_AARCH64_AUTH_RELATIVE", 1037: "R_AARCH64_AUTH_TLSDESC",
+    257: "R_AARCH64_ABS64", 580: "R_AARCH64_AUTH_ABS64",
+    1025: "R_AARCH64_GLOB_DAT", 1026: "R_AARCH64_JUMP_SLOT",
+    1027: "R_AARCH64_RELATIVE", 1028: "R_AARCH64_TLS_DTPMOD64",
+    1029: "R_AARCH64_TLS_DTPREL64", 1030: "R_AARCH64_TLS_TPREL64",
+    1031: "R_AARCH64_TLSDESC", 1032: "R_AARCH64_IRELATIVE",
+    1041: "R_AARCH64_AUTH_RELATIVE", 1042: "R_AARCH64_AUTH_GLOB_DAT",
+    1043: "R_AARCH64_AUTH_TLSDESC", 1044: "R_AARCH64_AUTH_IRELATIVE",
 }
 
 
@@ -122,8 +125,8 @@ def dynamic_metadata(module) -> dict:
     def rela_table(pointer, size, entry_size, name):
         if not size:
             return {"entries": 0, "types": {}, "samples": []}
-        if entry_size != 24 or size % entry_size:
-            return {"error": f"{name} has an invalid Elf64_Rela entry size"}
+        if not pointer or entry_size != 24 or size % entry_size:
+            return {"error": f"{name} has an invalid pointer, size, or Elf64_Rela entry size"}
         if pointer > len(image) or size > len(image) - pointer:
             return {"error": f"{name} exceeds the module image bounds"}
         counts, samples = {}, []
@@ -142,6 +145,27 @@ def dynamic_metadata(module) -> dict:
                 })
         return {"entries": size // entry_size, "types": counts, "samples": samples}
 
+    def relr_table(pointer, size, entry_size, name):
+        if not size:
+            return {"entries": 0, "relocation_slots": 0}
+        if not pointer or entry_size != 8 or size % 8:
+            return {"error": f"{name} has an invalid pointer, size, or entry size"}
+        if pointer > len(image) or size > len(image) - pointer:
+            return {"error": f"{name} exceeds the module image bounds"}
+        where = None
+        slots = 0
+        for offset in range(pointer, pointer + size, 8):
+            value = struct.unpack_from("<Q", image, offset)[0]
+            if not value & 1:
+                where = value + 8
+                slots += 1
+            else:
+                if where is None:
+                    return {"error": f"{name} bitmap appears before a base entry"}
+                slots += (value >> 1).bit_count()
+                where += 63 * 8
+        return {"entries": size // 8, "relocation_slots": slots}
+
     rela = rela_table(one(7), one(8), one(9, 24), "DT_RELA")
     jmprel = {"entries": 0, "types": {}, "samples": []}
     if one(23):
@@ -149,29 +173,11 @@ def dynamic_metadata(module) -> dict:
             jmprel = {"error": "DT_JMPREL is not an Elf64_Rela table"}
         else:
             jmprel = rela_table(one(23), one(2), one(9, 24), "DT_JMPREL")
-
-    relr = {"entries": 0, "relocation_slots": 0}
-    relr_size = one(35)
-    if relr_size:
-        pointer, entry_size = one(36), one(37, 8)
-        if entry_size != 8 or relr_size % 8 or pointer > len(image) or relr_size > len(image) - pointer:
-            relr = {"error": "DT_RELR has invalid entry size or exceeds the module image bounds"}
-        else:
-            where = None
-            slots = 0
-            for offset in range(pointer, pointer + relr_size, 8):
-                value = struct.unpack_from("<Q", image, offset)[0]
-                if not value & 1:
-                    where = value + 8
-                    slots += 1
-                else:
-                    if where is None:
-                        relr = {"error": "DT_RELR bitmap appears before a base entry"}
-                        break
-                    slots += (value >> 1).bit_count()
-                    where += 63 * 8
-            if "error" not in relr:
-                relr = {"entries": relr_size // 8, "relocation_slots": slots}
+    relr = relr_table(one(36), one(35), one(37, 8), "DT_RELR")
+    auth_relr = relr_table(
+        one(0x70000012), one(0x70000011), one(0x70000013, 8),
+        "DT_AARCH64_AUTH_RELR",
+    )
 
     return {
         "available": True,
@@ -182,8 +188,10 @@ def dynamic_metadata(module) -> dict:
         "rela": rela,
         "jmprel": jmprel,
         "relr": relr,
+        "auth_relr": auth_relr,
         "note": "Static metadata only: no relocation is applied and no module code is executed.",
     }
+
 
 def survey(path: Path) -> dict:
     raw = path.read_bytes()
