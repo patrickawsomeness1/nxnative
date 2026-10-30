@@ -6,6 +6,7 @@ import UIKit
 @_silgen_name("nx_pac_sign") private func nx_pac_sign(_ pointer: UInt64, _ modifier: UInt64) -> UInt64
 @_silgen_name("nx_pac_auth") private func nx_pac_auth(_ pointer: UInt64, _ modifier: UInt64) -> UInt64
 @_silgen_name("nx_xom_smoke") private func nx_xom_smoke() -> Int32
+@_silgen_name("nx_lse_smoke") private func nx_lse_smoke() -> Int32
 
 struct MetalSmokeView: UIViewRepresentable {
     let renderer: MetalSmokeRenderer
@@ -34,6 +35,7 @@ final class MetalSmokeRenderer: NSObject, ObservableObject, MTKViewDelegate {
     let gpuStatus: String
     let pacStatus: String
     let xomStatus: String
+    let lseStatus: String
     let maxBufferLength: String
     let workingSet: String
     let message: String
