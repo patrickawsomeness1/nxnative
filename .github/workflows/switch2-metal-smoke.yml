@@ -16,6 +16,7 @@ on:
       - "dm/host/loader.c"
       - "dm/host/switch2/pauth.h"
       - "dm/host/dm.h"
+      - "dm/host/Makefile"
       - ".github/workflows/switch2-metal-smoke.yml"
 
 jobs:
