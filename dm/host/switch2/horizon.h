@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 #define NX_HORIZON_MAX_SERVICES 32
+#define NX_HORIZON_MAX_SESSIONS 64
 #define NX_HORIZON_MAX_NAME 64
 #define NX_CMIF_HEADER_SIZE 16u
 #define NX_CMIF_VERSION 1u
@@ -51,6 +52,17 @@ nx_horizon_status nx_horizon_dispatch(
     const uint8_t *request, size_t request_size,
     uint8_t *response, size_t response_capacity, size_t *response_size);
 size_t nx_horizon_service_count(const nx_horizon_context *ctx);
+
+// Host-internal session handles are not Horizon kernel handles. This layer
+// models service-session ownership until verified HIPC handle transport exists.
+nx_horizon_status nx_horizon_open_session(
+    nx_horizon_context *ctx, const char *service_name, uint32_t *out_handle);
+nx_horizon_status nx_horizon_close_session(
+    nx_horizon_context *ctx, uint32_t handle);
+nx_horizon_status nx_horizon_session_cmif_dispatch(
+    nx_horizon_context *ctx, uint32_t handle,
+    const uint8_t *request, size_t request_size,
+    uint8_t *response, size_t response_capacity, size_t *response_size);
 // CMIF framing only: the enclosing HIPC/TIPC transport and Nintendo result
 // domain mapping are deliberately outside this API. A handler error is returned
 // locally; no guessed Nintendo result code is serialized.
