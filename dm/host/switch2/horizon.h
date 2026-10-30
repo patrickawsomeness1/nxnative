@@ -39,8 +39,16 @@ typedef struct {
 } nx_horizon_service;
 
 typedef struct {
+    uint32_t handle;
+    uint16_t service_index;
+    uint8_t active;
+} nx_horizon_session;
+
+typedef struct {
     nx_horizon_service services[NX_HORIZON_MAX_SERVICES];
     size_t service_count;
+    nx_horizon_session sessions[NX_HORIZON_MAX_SESSIONS];
+    uint32_t next_session_handle;
 } nx_horizon_context;
 
 void nx_horizon_init(nx_horizon_context *ctx);
