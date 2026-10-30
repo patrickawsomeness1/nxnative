@@ -20,7 +20,7 @@ PAC_BRANCH = ("braa", "brab", "blraa", "blrab", "retaa", "retab")
 LSE = ("cas", "casa", "casal", "casl", "swp", "ldadd", "ldclr", "ldeor", "ldset",
        "ldsmax", "ldsmin", "ldumax", "ldumin")
 SYSREGS = ("tpidr_el0", "tpidrro_el0", "tpidr2_el0", "cntpct_el0",
-           "cntvct_el0", "cntfrq_el0", "cntvoff_el2")
+           "cntvct_el0", "cntfrq_el0", "cntvoff_el2", "ctr_el0")
 
 
 def dynamic_symbols(raw: bytes, module) -> dict:
