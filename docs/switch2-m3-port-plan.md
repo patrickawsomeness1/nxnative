@@ -36,6 +36,10 @@ GitHub Actions run [#41144914667](https://github.com/patrickawsomeness1/nxnative
 
 This is a verified **unsigned diagnostic app build**, not a game runtime. It has not been signed for the user's account, installed on the M3 iPad Air or A19 Pro iPhone 17 Pro Max, or tested with a Switch 2 executable. A successful build proves the app and ARM64 probe compile, not that Switch 2 guest code executes.
 
+### Pointer-authenticated relocation analysis
+
+The survey now follows `MOD0` dynamic metadata and inventories `RELA`, `JMPREL`, `RELR`, and `DT_AARCH64_AUTH_RELR`. It uses the Arm PAuth ABI's actual relocation numbers, including `R_AARCH64_AUTH_ABS64` (580), `AUTH_RELATIVE` (1041), `AUTH_GLOB_DAT` (1042), `AUTH_TLSDESC` (1043), and `AUTH_IRELATIVE` (1044). The native loader now refuses unknown relocation types and authenticated RELR rather than applying the generic unsigned-pointer fallback. Synthetic tests for these tables and IDs pass in GitHub Actions. The PAC instruction/branch smoke test also compiles in the iOS diagnostic app; no physical-device run has yet been recorded.
+
 ### Native execution compatibility work
 
 - Fixed the NSO reader's image-span check so it does not apply the LZ4 expansion-ratio ceiling to ZBIC-compressed modules; added a highly-compressible ZBIC regression case.
