@@ -39,6 +39,8 @@ Relevant implementation files in this repository:
 
 Apple requires executable code to be signed and restricts writable/executable memory. We deliberately preserve nxnative's signed-code-section approach instead of depending on a private entitlement or unrestricted JIT.
 
+**Switch 2-specific blocker:** the existing iOS `map_image` path currently remaps guest text as read+execute (`r-x`) and the Switch 1 rewriter performs x18 / `tpidr_el0` / `tpidrro_el0` transformations. That is a proven original-Switch pipeline, not proof of Switch 2 compatibility. Switch 2 modules that request XOM are deliberately rejected by the current rewriter; a Switch 2 profile must establish whether execute-only permissions can be preserved in the signed-image/remap model and must implement the correct Switch 2 thread/PAC ABI before any guest entry point is called.
+
 References:
 - [Apple Platform Security: runtime process security](https://support.apple.com/guide/security/security-of-runtime-process-sec15bfe098e/web)
 - [Apple Developer: JIT and MAP_JIT requirements](https://developer.apple.com/documentation/BundleResources/Entitlements/com.apple.security.cs.allow-jit)
