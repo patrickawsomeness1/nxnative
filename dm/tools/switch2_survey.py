@@ -179,6 +179,10 @@ def dynamic_metadata(module) -> dict:
         one(0x70000012), one(0x70000011), one(0x70000013, 8),
         "DT_AARCH64_AUTH_RELR",
     )
+    supported = {"R_AARCH64_ABS64", "R_AARCH64_GLOB_DAT", "R_AARCH64_JUMP_SLOT", "R_AARCH64_RELATIVE"}
+    unsupported = sorted({name for table in (rela, jmprel) for name in table.get("types", {}) if name not in supported})
+    if auth_relr.get("relocation_slots", 0):
+        unsupported.append("DT_AARCH64_AUTH_RELR")
 
     return {
         "available": True,
@@ -190,6 +194,7 @@ def dynamic_metadata(module) -> dict:
         "jmprel": jmprel,
         "relr": relr,
         "auth_relr": auth_relr,
+        "current_loader_unsupported": unsupported,
         "note": "Static metadata only: no relocation is applied and no module code is executed.",
     }
 
