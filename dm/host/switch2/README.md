@@ -1,6 +1,6 @@
 # Switch 2 host compatibility (experimental)
 
-This directory is reserved for Switch 2-specific loader and Horizon compatibility work. Existing generic host code may be reused only after its ABI and behavioural assumptions are checked against Switch 2 homebrew observations.
+This directory is reserved for Switch 2-specific loader and Horizon compatibility work for both iPadOS (M3 iPad Air) and iOS (A19 Pro iPhone 17 Pro Max). Existing generic host code may be reused only after its ABI and behavioural assumptions are checked against Switch 2 homebrew observations.
 
 **Current status: no Switch 2 runtime implementation yet.**
 
