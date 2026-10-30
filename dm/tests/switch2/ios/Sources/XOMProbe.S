@@ -9,3 +9,12 @@ _nx_xom_probe_page_start:
     ret
 .p2align 14
 _nx_xom_probe_page_end:
+
+.arch_extension lse
+.p2align 2
+.globl _nx_lse_add
+_nx_lse_add:
+    bti c
+    ldaddal x1, x2, [x0]
+    mov x0, x2
+    ret
