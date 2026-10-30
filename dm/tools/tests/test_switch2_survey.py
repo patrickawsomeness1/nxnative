@@ -55,7 +55,7 @@ def make_nso_with_mod0():
         struct.pack_into("<qQ", text, 0x200 + index * 16, tag, value)
 
     ro = bytearray(0x1000)
-    strings = b"\\0nn::os::CreateThread\\0nn::vi::OpenDisplay\\0"
+    strings = b"\0nn::os::CreateThread\0nn::vi::OpenDisplay\0"
     ro[0x100:0x100 + len(strings)] = strings
     struct.pack_into("<IBBHQQ", ro, 0x200 + 24, 1, 0x12, 0, 0, 0, 0)
     struct.pack_into("<IBBHQQ", ro, 0x200 + 48, 22, 0x12, 0, 0, 0, 0)
