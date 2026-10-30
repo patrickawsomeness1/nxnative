@@ -18,18 +18,18 @@ def make_nso(flags=0x40 | 0x38):
     ro = bytearray(0x1000)
     import_one = b"nn::os::CreateThread"
     import_two = b"nn::vi::OpenDisplay"
-    strings = b"\\0" + import_one + b"\\0" + import_two + b"\\0"
+    strings = bytes([0]) + import_one + bytes([0]) + import_two + bytes([0])
     ro[0x100:0x100 + len(strings)] = strings
     name_one = 1
     name_two = 1 + len(import_one) + 1
     struct.pack_into("<IBBHQQ", ro, 0x200 + 24, name_one, 0x12, 0, 0, 0, 0)
     struct.pack_into("<IBBHQQ", ro, 0x200 + 48, name_two, 0x12, 0, 0, 0, 0)
-    struct.pack_into("<IIII", header, 0x90, 0x100, len(strings), 0x200, 72)
     data = b"writable test!!!"
     header = bytearray(0x100)
     header[:4] = b"NSO0"
     header[0x40:0x60] = bytes(range(32))
     struct.pack_into("<I", header, 0x0C, flags)
+    struct.pack_into("<IIII", header, 0x90, 0x100, len(strings), 0x200, 72)
     segments = [(0x100, 0x0000, text), (0x110, 0x1000, bytes(ro)), (0x1110, 0x2000, data)]
     body = bytearray()
     for i, (file_offset, memory_offset, payload) in enumerate(segments):
