@@ -1,7 +1,7 @@
 {
   "id": "nxnative-probe",
   "name": "nxnative CPU Probe",
-  "description": "Staged ARM64 ABI, timer, logging, and heap smoke test",
+  "description": "Staged ARM64 ABI, timer, logging, heap, PAC, BTI, and LSE smoke test",
   "version": "0.1.0",
   "abi": 3,
   "kind": "native",
