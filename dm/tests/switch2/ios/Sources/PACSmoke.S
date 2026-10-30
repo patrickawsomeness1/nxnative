@@ -30,3 +30,34 @@ _nx_pac_branch_target:
     bti c
     mov x0, #0x2a
     ret
+
+.p2align 2
+.globl _nx_pac_sign_ib
+_nx_pac_sign_ib:
+    pacib x0, x1
+    ret
+.p2align 2
+.globl _nx_pac_auth_ib
+_nx_pac_auth_ib:
+    autib x0, x1
+    ret
+.p2align 2
+.globl _nx_pac_sign_da
+_nx_pac_sign_da:
+    pacda x0, x1
+    ret
+.p2align 2
+.globl _nx_pac_auth_da
+_nx_pac_auth_da:
+    autda x0, x1
+    ret
+.p2align 2
+.globl _nx_pac_sign_db
+_nx_pac_sign_db:
+    pacdb x0, x1
+    ret
+.p2align 2
+.globl _nx_pac_auth_db
+_nx_pac_auth_db:
+    autdb x0, x1
+    ret
