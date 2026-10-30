@@ -15,22 +15,23 @@ import lz4.block
 from capstone import *
 
 src, outdir, NAME = sys.argv[1], sys.argv[2], sys.argv[3]
+# Use the shared Horizon-compatible module reader. Besides strict bounds and SHA-256
+# validation, this handles NSO ZBIC compression (flag bit 7, Switch 2-era firmware).
+# The rewriter still applies only the Switch 1 instruction/ABI transformations
+# below; Switch 2 PAC/XOM/SVC behaviour must be surveyed before enabling it for S2.
+import nso
 d = open(src, 'rb').read()
-assert d[:4] == b'NSO0'
-flags = struct.unpack_from('<I', d, 0xc)[0]
-segs = [struct.unpack_from('<III', d, 0x10 + i * 0x10) for i in range(3)]
-bss = struct.unpack_from('<I', d, 0x3c)[0]
-csz = struct.unpack_from('<III', d, 0x60)
+MOD = nso.cli_read(src)
+segs = [(0, mo, sz) for mo, sz in MOD.segments]
+bss = MOD.bss
 # Every jump between the patch area and the code is a B (±128 MB). A patch area appended after the image (with bss) cannot reach the code when it would start beyond 112 MB (leaving 16 MB for the patch area): Metroid Dread's main has about 1.8 GB of bss (the engine's static heap); Engage's main starts its patch area at about 103 MB and keeps it after the image.
 # The patch area then sits FRONT bytes before the module base (PATCH_OFF is negative), and the output file holds only text + ro + data (FILE_IMAGE_LEN) followed by the patch area; the loader supplies zero pages for bss and the key page (IMAGE_SIZE is the whole image).
 # The key page stays after bss (the patch area reaches it through ADRP, ±4 GB). Modules below the limit produce output byte-identical to before
 NEAR_PATCH_OFF = ((((segs[2][1] + segs[2][2] + bss + 0x3FFF) & ~0x3FFF) + 0x4000 + 0xFFFF) & ~0xFFFF)   # where an appended patch area would start (as in the else branch below)
 FAR, FRONT = NEAR_PATCH_OFF > 0x7000000, 0x2000000
-IMG = bytearray(segs[2][1] + segs[2][2] + (0 if FAR else bss))
-for i, (fo, mo, sz) in enumerate(segs):
-    raw = d[fo:fo + csz[i]]
-    if flags >> i & 1: raw = lz4.block.decompress(raw, uncompressed_size=sz)
-    IMG[mo:mo + sz] = raw
+IMG = bytearray(MOD.image)
+if not FAR:
+    IMG.extend(bytes(bss))
 TEXT_END = segs[0][2]
 RO_OFF, DATA_OFF = segs[1][1], segs[2][1]
 if FAR:
