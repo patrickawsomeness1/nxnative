@@ -115,6 +115,9 @@ class Switch2SurveyTests(unittest.TestCase):
         self.assertEqual(metadata["jmprel"]["types"]["R_AARCH64_JUMP_SLOT"], 1)
         self.assertEqual(metadata["relr"]["relocation_slots"], 1)
         self.assertEqual(metadata["auth_relr"]["relocation_slots"], 1)
+        self.assertIn("R_AARCH64_AUTH_ABS64", metadata["current_loader_unsupported"])
+        self.assertIn("R_AARCH64_AUTH_RELATIVE", metadata["current_loader_unsupported"])
+        self.assertIn("DT_AARCH64_AUTH_RELR", metadata["current_loader_unsupported"])
 
     def test_rejects_non_nso(self):
         with tempfile.TemporaryDirectory() as tmp:
