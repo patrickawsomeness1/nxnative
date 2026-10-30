@@ -14,6 +14,11 @@
  */
 #include "hbx_sdk.h"
 #include "hbx_app.h"
+#include <stdint.h>
+
+extern int nx_probe_pac_keys(void);
+extern int nx_probe_pac_branch(void);
+extern uint64_t nx_probe_lse_add(volatile uint64_t *address, uint64_t value);
 
 #define NX_PROBE_MARKER 0x4e585032u /* "NXP2" */
 #define NX_PROBE_BYTES  (64u * 1024u)
@@ -26,14 +31,21 @@ int hbx_app_main(const struct hbx_ctx *ctx) {
     if (hbx_ctx_check(ctx) != HBX_OK) return HBX_ERR_ABI;
     reached = 1;
 
+    if (stage >= 1u) {
+        uintptr_t stack_pointer;
+        __asm__ volatile("mov %0, sp" : "=r"(stack_pointer));
+        if (!stack_pointer || (stack_pointer & 15u)) return HBX_ERR_ABI;
+        reached = 2;
+    }
+
     if (stage >= 2u) {
         (void)hbx_tick();
-        reached = 2;
+        reached = 3;
     }
 
     if (stage >= 3u) {
         hbx_log(ctx, "nxnative-probe: SDK log path reached");
-        reached = 3;
+        reached = 4;
     }
 
     if (stage >= 4u) {
@@ -53,13 +65,30 @@ int hbx_app_main(const struct hbx_ctx *ctx) {
 
         hbx_free(&heap, block);
         if (checksum == 0u) return HBX_ERR_INTERNAL;
-        reached = 4;
+        reached = 5;
     }
 
     if (stage >= 5u) {
         hbx_logf(ctx, "nxnative-probe: stage=%u marker=%08x",
                  reached, NX_PROBE_MARKER);
-        reached = 5;
+        reached = 6;
+    }
+
+    if (stage >= 6u) {
+        if (!nx_probe_pac_keys()) return HBX_ERR_UNSUPPORTED;
+        reached = 7;
+    }
+
+    if (stage >= 7u) {
+        if (nx_probe_pac_branch() != 42) return HBX_ERR_UNSUPPORTED;
+        reached = 8;
+    }
+
+    if (stage >= 8u) {
+        volatile uint64_t atomic_value = 0x10;
+        uint64_t previous = nx_probe_lse_add(&atomic_value, 0x5);
+        if (previous != 0x10 || atomic_value != 0x15) return HBX_ERR_UNSUPPORTED;
+        reached = 9;
     }
 
     out->frame = NX_PROBE_MARKER;
