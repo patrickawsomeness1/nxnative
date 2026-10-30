@@ -2,6 +2,13 @@
 #include <stdint.h>
 
 extern uint64_t nx_xom_probe_page_start(void);
+extern uint64_t nx_lse_add(uint64_t *address, uint64_t value);
+
+int nx_lse_smoke(void) {
+    uint64_t value = 7;
+    uint64_t previous = nx_lse_add(&value, 5);
+    return previous == 7 && value == 12 ? 1 : 0;
+}
 
 // Returns 1 only when a signed __TEXT page can be remapped, reduced to execute-only,
 // and executed successfully. Negative values identify the failed Mach operation.
