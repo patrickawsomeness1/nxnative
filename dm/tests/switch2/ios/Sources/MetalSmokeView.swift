@@ -8,6 +8,7 @@ import UIKit
 @_silgen_name("nx_pac_branch_probe") private func nx_pac_branch_probe() -> UInt64
 @_silgen_name("nx_xom_smoke") private func nx_xom_smoke() -> Int32
 @_silgen_name("nx_lse_smoke") private func nx_lse_smoke() -> Int32
+@_silgen_name("nx_pac_all_keys_smoke") private func nx_pac_all_keys_smoke() -> Int32
 
 struct MetalSmokeView: UIViewRepresentable {
     let renderer: MetalSmokeRenderer
@@ -48,19 +49,20 @@ final class MetalSmokeRenderer: NSObject, ObservableObject, MTKViewDelegate {
         commandQueue = selectedDevice?.makeCommandQueue()
         deviceName = selectedDevice?.name ?? "No Metal device"
         gpuStatus = selectedDevice?.hasUnifiedMemory == true ? "Unified memory" : "Unavailable / discrete"
+        let branchResult = nx_pac_branch_probe()
+        let branchStatus = branchResult == 42 ? "PAC-authenticated branch passed" : "PAC branch returned \(branchResult)"
+        let keyStatus = nx_pac_all_keys_smoke() == 1 ? "IA/IB/DA/DB keys passed" : "PAC key round-trip failed"
         let pacInput: UInt64 = 0x0000_0000_1234_5678
         let pacModifier: UInt64 = 0x42
         let signedPointer = nx_pac_sign(pacInput, pacModifier)
         let authenticatedPointer = nx_pac_auth(signedPointer, pacModifier)
         if signedPointer != pacInput && authenticatedPointer == pacInput {
-            pacStatus = "PAC sign/auth round-trip passed; \\(branchStatus)"
+            pacStatus = "PAC sign/auth round-trip passed; \(branchStatus); \(keyStatus)"
         } else if authenticatedPointer != pacInput {
-            pacStatus = "PAC round-trip failed; \\(branchStatus)"
+            pacStatus = "PAC round-trip failed; \(branchStatus); \(keyStatus)"
         } else {
-            pacStatus = "PAC not detected (instructions may be treated as hints); \\(branchStatus)"
+            pacStatus = "PAC not detected (instructions may be treated as hints); \(branchStatus); \(keyStatus)"
         }
-        let branchResult = nx_pac_branch_probe()
-        let branchStatus = branchResult == 42 ? "PAC-authenticated branch passed" : "PAC branch returned \\(branchResult)"
         let xomResult = nx_xom_smoke()
         xomStatus = xomResult == 1
             ? "Signed-page execute-only remap passed"
