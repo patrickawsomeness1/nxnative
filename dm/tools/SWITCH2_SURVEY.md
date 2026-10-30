@@ -19,3 +19,5 @@ python3 dm/tools/switch2_survey.py /path/to/authorized/main -o main.switch2-surv
 ```
 
 This is a survey, not a loader or execution test. Static disassembly can encounter embedded data and cannot establish runtime service calls, SVC semantics, PAC key behaviour, or graphics API usage. Keep Switch 2 observations separate from original Switch profiles until verified.
+
+The current Switch 1 rewriter is intentionally guarded: `DM_TARGET=switch2` makes it stop with an explicit unsupported-target error, and it refuses NSOs that request XOM because the existing iOS remapper does not preserve execute-only permissions. Do not remove these checks to force a build. Switch 2 support requires a separate, tested rewrite/loader profile.
