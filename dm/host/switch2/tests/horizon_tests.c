@@ -54,6 +54,17 @@ int main(void) {
         cmif_response[14] == 0x34 && cmif_response[15] == 0x12);
     assert(cmif_response[16] == 9 && cmif_response[17] == 8 &&
         cmif_response[18] == 7);
+
+    // Legacy CMIF v0 requests are also valid and the SFCO response echoes v0.
+    const uint8_t cmif_v0_request[] = {
+        0x53,0x46,0x43,0x49, 0,0,0,0, 7,0,0,0,
+        0x34,0x12,0,0, 4,5,6
+    };
+    assert(nx_horizon_cmif_dispatch(&ctx, "sm:", cmif_v0_request,
+        sizeof(cmif_v0_request), cmif_response, sizeof(cmif_response),
+        &cmif_response_size) == NX_HORIZON_OK);
+    assert(cmif_response[4] == 0 && cmif_response[5] == 0 &&
+        cmif_response[6] == 0 && cmif_response[7] == 0);
     const uint8_t bad_magic[] = {0};
     assert(nx_horizon_cmif_dispatch(&ctx, "sm:", bad_magic,
         sizeof(bad_magic), cmif_response, sizeof(cmif_response),
