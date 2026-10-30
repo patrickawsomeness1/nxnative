@@ -1,4 +1,5 @@
 #include "../horizon.h"
+#include "../hipc.h"
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -91,6 +92,78 @@ int main(void) {
     assert(wrapped_handle == 1 && wrapped_handle != last_handle);
     assert(nx_horizon_close_session(&ctx, last_handle) == NX_HORIZON_OK);
     assert(nx_horizon_close_session(&ctx, wrapped_handle) == NX_HORIZON_OK);
-    puts("Switch 2 Horizon service, CMIF, and session tests passed");
+    // Minimal HIPC Request (type 4), with CMIF v0 aligned to 16 bytes.
+    uint8_t hipc[128] = {0};
+    uint32_t hipc_word0 = NX_HIPC_CMIF_REQUEST;
+    uint32_t hipc_word1 = 7; // 7 data words: 8-byte pad + 16-byte CMIF header + 3-byte payload.
+    memcpy(hipc, &hipc_word0, sizeof(hipc_word0));
+    memcpy(hipc + 4, &hipc_word1, sizeof(hipc_word1));
+    const uint32_t sfci = 0x49434653u;
+    memcpy(hipc + 16, &sfci, sizeof(sfci));
+    uint32_t version0 = 0, command7 = 7, token = 0x12345678;
+    memcpy(hipc + 20, &version0, 4);
+    memcpy(hipc + 24, &command7, 4);
+    memcpy(hipc + 28, &token, 4);
+    hipc[32] = 9; hipc[33] = 8; hipc[34] = 7;
+    nx_hipc_view hipc_view;
+    assert(nx_hipc_parse_request(hipc, 36, &hipc_view) == NX_HIPC_OK);
+    assert(hipc_view.message_type == NX_HIPC_CMIF_REQUEST);
+    assert(hipc_view.num_data_words == 7 && hipc_view.data_size == 28);
+    assert(hipc_view.cmif_request == hipc + 16 && hipc_view.cmif_available == 20);
+    assert(hipc_view.num_send_buffers == 0 && hipc_view.num_copy_handles == 0);
+
+    // Context-aware CMIF v1 uses HIPC RequestWithContext (type 6).
+    hipc_word0 = NX_HIPC_CMIF_REQUEST_WITH_CONTEXT;
+    memcpy(hipc, &hipc_word0, 4);
+    uint32_t version1 = 1;
+    memcpy(hipc + 20, &version1, 4);
+    assert(nx_hipc_parse_request(hipc, 36, &hipc_view) == NX_HIPC_OK);
+    assert(hipc_view.cmif_request == hipc + 16);
+
+    // Special header, PID, handles, all four descriptor groups, and one recv-static entry.
+    memset(hipc, 0, sizeof(hipc));
+    hipc_word0 = NX_HIPC_CMIF_REQUEST | (1u << 16) | (1u << 20) |
+        (1u << 24) | (1u << 28);
+    hipc_word1 = 7u | (3u << 10) | (1u << 31);
+    memcpy(hipc, &hipc_word0, 4);
+    memcpy(hipc + 4, &hipc_word1, 4);
+    uint32_t special = 1u | (1u << 1) | (1u << 5); // PID + one copy + one move handle.
+    memcpy(hipc + 8, &special, 4);
+    const uint64_t pid = 0x1122334455667788ULL;
+    memcpy(hipc + 12, &pid, 8);
+    memcpy(hipc + 80, &sfci, 4);
+    memcpy(hipc + 84, &version0, 4);
+    memcpy(hipc + 88, &command7, 4);
+    memcpy(hipc + 92, &token, 4);
+    hipc[96] = 1; hipc[97] = 2; hipc[98] = 3;
+    assert(nx_hipc_parse_request(hipc, 108, &hipc_view) == NX_HIPC_OK);
+    assert(hipc_view.send_pid && hipc_view.pid == pid);
+    assert(hipc_view.num_copy_handles == 1 && hipc_view.num_move_handles == 1);
+    assert(hipc_view.num_send_statics == 1 && hipc_view.num_send_buffers == 1);
+    assert(hipc_view.num_recv_buffers == 1 && hipc_view.num_exch_buffers == 1);
+    assert(hipc_view.num_recv_statics == 1 && !hipc_view.recv_static_auto);
+    assert(hipc_view.copy_handles == hipc + 20 && hipc_view.move_handles == hipc + 24);
+    assert(hipc_view.send_statics == hipc + 28 && hipc_view.send_buffers == hipc + 36);
+    assert(hipc_view.recv_buffers == hipc + 48 && hipc_view.exch_buffers == hipc + 60);
+    assert(hipc_view.data_words == hipc + 72 && hipc_view.recv_list == hipc + 100);
+    assert(hipc_view.cmif_request == hipc + 80);
+
+    // Malformed and truncated messages fail before exposing any guest pointers.
+    assert(nx_hipc_parse_request(hipc, 7, &hipc_view) == NX_HIPC_E_BUFFER);
+    memset(hipc, 0, sizeof(hipc));
+    hipc_word0 = NX_HIPC_CMIF_REQUEST;
+    hipc_word1 = 1u << 10; // Reserved receive-static mode.
+    memcpy(hipc, &hipc_word0, 4); memcpy(hipc + 4, &hipc_word1, 4);
+    assert(nx_hipc_parse_request(hipc, sizeof(hipc), &hipc_view) == NX_HIPC_E_HEADER);
+    hipc_word1 = 0x3ffu;
+    memcpy(hipc + 4, &hipc_word1, 4);
+    assert(nx_hipc_parse_request(hipc, sizeof(hipc), &hipc_view) == NX_HIPC_E_BUFFER);
+    hipc_word1 = 7u;
+    memcpy(hipc + 4, &hipc_word1, 4);
+    memcpy(hipc + 16, &sfci, 4);
+    memcpy(hipc + 20, &version1, 4); // type 4 requires CMIF v0.
+    assert(nx_hipc_parse_request(hipc, 36, &hipc_view) == NX_HIPC_E_HEADER);
+
+    puts("Switch 2 Horizon service, CMIF, HIPC, and session tests passed");
     return 0;
 }
