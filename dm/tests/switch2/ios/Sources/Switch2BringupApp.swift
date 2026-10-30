@@ -23,7 +23,7 @@ struct BringupDashboard: View {
                 Text("Switch 2 · Metal Bring-up")
                     .font(.largeTitle.bold())
 
-                Text("Stage 0: Apple GPU validation")
+                Text("Stage 0: Apple CPU + GPU validation")
                     .font(.headline)
                     .foregroundStyle(.secondary)
 
