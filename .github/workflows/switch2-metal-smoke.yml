@@ -29,7 +29,7 @@ jobs:
       - name: Type-check native iOS loader and XOM mapping path
         run: |
           python3 dm/games/game.py header 010015100B514000 dm/host/gen/switch2-ci/game_profile.h
-          xcrun --sdk iphoneos clang -target arm64-apple-ios17.0 -std=gnu11 -fsyntax-only \
+          xcrun --sdk iphoneos clang -target arm64-apple-ios17.0 -march=armv8.3-a -std=gnu11 -fsyntax-only \
             -Idm/host/gen/switch2-ci -Idm/host dm/host/loader.c
 
       - name: Run payload parser tests
