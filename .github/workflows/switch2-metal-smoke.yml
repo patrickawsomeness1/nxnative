@@ -19,6 +19,13 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
+      - name: Run payload parser tests
+        working-directory: dm/tests/switch2/ios
+        run: |
+          mkdir -p build
+          swiftc Sources/PayloadParser.swift tests/PayloadParserTests.swift -o build/payload-parser-tests
+          build/payload-parser-tests
+
       - name: Generate Xcode project
         working-directory: dm/tests/switch2/ios
         run: xcodegen generate
