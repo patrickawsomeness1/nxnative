@@ -1,7 +1,9 @@
 """Switch 2 NSO static survey tests using synthetic, non-proprietary ARM64 bytes."""
 from pathlib import Path
 import hashlib
+import os
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -11,14 +13,13 @@ sys.path.insert(0, str(ROOT / "dm/tools"))
 import switch2_survey
 
 
-def make_nso():
+def make_nso(flags=0x40 | 0x38):
     text = struct.pack("<IIII", 0xD503233F, 0xD503245F, 0xD4001001, 0xD65F03C0)  # paciasp; bti c; svc #0x80; ret
     ro = b"read-only test!!"
     data = b"writable test!!!"
     header = bytearray(0x100)
     header[:4] = b"NSO0"
     header[0x40:0x60] = bytes(range(32))
-    flags = 0x40 | 0x38  # execute-only text + all three segment hashes
     struct.pack_into("<I", header, 0x0C, flags)
     segments = [(0x100, 0x0000, text), (0x110, 0x1000, ro), (0x120, 0x2000, data)]
     body = bytearray()
@@ -48,6 +49,31 @@ class Switch2SurveyTests(unittest.TestCase):
             path.write_bytes(bytes(256))
             with self.assertRaises(Exception):
                 switch2_survey.survey(path)
+
+    def test_switch2_target_does_not_use_switch1_rewriter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "main.nso"
+            path.write_bytes(make_nso(flags=0x38))
+            env = dict(os.environ, DM_TARGET="switch2")
+            result = subprocess.run(
+                [sys.executable, "dm/tools/patch_nso.py", str(path), tmp, "main"],
+                cwd=ROOT, env=env, capture_output=True, text=True
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Switch 2 native rewriting is not enabled yet", result.stderr)
+
+    def test_xom_module_is_refused_by_switch1_rewriter(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "xom-main.nso"
+            path.write_bytes(make_nso())
+            env = dict(os.environ)
+            env.pop("DM_TARGET", None)
+            result = subprocess.run(
+                [sys.executable, "dm/tools/patch_nso.py", str(path), tmp, "main"],
+                cwd=ROOT, env=env, capture_output=True, text=True
+            )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("execute-only text (XOM)", result.stderr)
 
 
 if __name__ == "__main__":
