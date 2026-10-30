@@ -7,7 +7,7 @@
  *
  * 0: entry + ABI validation + context writeback
  * 1: loader-provided stack pointer is nonzero and 16-byte aligned
- * 2: CNTVCT-backed SDK timer access
+ * 2: CNTFRQ_EL0 + CNTVCT_EL0 timer frequency/sample capture
  * 3: SDK log ring write
  * 4: 64 KiB heap allocate / write / readback / free
  * 5: formatted log path
