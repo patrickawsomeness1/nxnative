@@ -172,6 +172,8 @@ The CI job `build-switch2-hblauncher-probe`:
 
 The probe stages check the HBLauncher ABI context, caller/host-provided stack path, SDK timer access, log-ring write, 64 KiB heap allocation/write/readback/free, and formatted logging. It does not initialise Vulkan or call NVN2, so failures are easier to isolate to CPU execution, app ABI, memory, or host-service handoff.
 
+The first CI build completed successfully in [workflow run #41146201247](https://github.com/patrickawsomeness1/nxnative/actions/runs/41146201247): the probe compiled and linked to a 3,893-byte, one-page AArch64 code image, with empty data/BSS, and uploaded artifact `nxnative-switch2-hblauncher-probe` (artifact ID `13020722356`). This is a build result only; the artifact has not yet been run on a physical Switch 2.
+
 **Important boundary:** HBLauncher runs inside a SmileBASIC user process and supplies its own app ABI. This is a good native-AArch64 execution baseline, but it is not a retail NSO/NRO loader and does not expose the retail Horizon `sm:` service manager, HIPC transport, SVC ABI, or NVN2. A successful CI cross-build proves only compilation and linking. A successful run on an actual Switch 2 proves only the HBLauncher userland path exercised by the selected stage. It must not be treated as evidence that retail Switch 2 games boot.
 
 ## Immediate next engineering task
