@@ -185,3 +185,8 @@ The first CI build completed successfully in [workflow run #41146201247](https:/
 ## Immediate next engineering task
 
 Build and run the standalone Metal bring-up app on the M3 iPad Air and iPhone 17 Pro Max. Once that baseline is confirmed, add the evidence-driven Switch 2 homebrew survey tooling and use a self-built Switch 2 test program to establish actual loader, Horizon, and NVN2 requirements. Do not implement guessed ABI signatures or object layouts.
+
+
+### HBLauncher adapter analysis
+
+The pinned HBLauncher Native SDK package now has a dedicated ABI and loader compatibility note: [HBLauncher-to-nxnative adapter findings](switch2-hblauncher-adapter.md). The note records its fixed code/data addresses, ABI 3 context layout, entry trampoline, Horizon SVC dependencies, and why its flat package cannot be passed directly to nxnative's NSO loader. The next runtime step is a separate nxnative-native CPU probe ABI, not pretending the HBLauncher image is an NSO.
