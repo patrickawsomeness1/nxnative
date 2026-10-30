@@ -2,7 +2,9 @@
 
 `switch2_survey.py` is a read-only offline analysis tool for authorized Switch 2 NSO modules. It uses the shared, bounds-checked `nso.py` reader, which validates segment bounds and enabled SHA-256 hashes and supports Nintendo's ZBIC-compressed NSO segments when the optional `zbic` Python package is installed.
 
-Switch 2's NSO0 header documents flag bit 6 as execute-only memory (XOM) and bit 7 as ZBIC compression (Nintendo's zstd-based format). Switch 2 security research also reports PAC on game return addresses and, in newer SDKs, PAC-related pointer discrimination; XOM may be enabled on newer game main modules. These differences are why the Switch 1 rewriter cannot simply be declared Switch 2-compatible.\n\nIt reports:
+Switch 2's NSO0 header documents flag bit 6 as execute-only memory (XOM) and bit 7 as ZBIC compression (Nintendo's zstd-based format). Switch 2 security research also reports PAC on game return addresses and, in newer SDKs, PAC-related pointer discrimination; XOM may be enabled on newer game main modules. These differences are why the Switch 1 rewriter cannot simply be declared Switch 2-compatible.
+
+It reports:
 - NSO flags, including per-segment compression/hash flags, execute-only text (XOM), and ZBIC compression;
 - segment offsets/sizes and module ID;
 - static AArch64 instruction counts and samples for PAC/authentication, authenticated branches, BTI, SVCs, LSE atomics, and selected system-register accesses.
