@@ -15,7 +15,7 @@ The host may select a maximum stage through `ctx->args[1]` (1–8); zero runs th
 | 4 | 64 KiB heap allocation, deterministic write/readback, free |
 | 5 | Formatted logging |
 | 6 | PACIA/PACIB/PACDA/PACDB sign/auth round trips |
-| 7 | PAC-authenticated `BRAA` into a `BTI c` landing pad |
+| 7 | PAC-authenticated `BRAA` into a `BTI j` landing pad |
 | 8 | LSE `LDADDAL` atomic read/modify/write |
 
 The app is built as a freestanding AArch64 image with BTI enabled by the upstream SDK toolchain. It intentionally does not initialise Vulkan, issue NVN2 calls, or assume retail Horizon service availability. Stages 6–8 execute PAC, authenticated-branch/BTI, and LSE instructions on the Switch 2 CPU when the package is run on-console; a successful CI cross-build alone does not verify those runtime results.
