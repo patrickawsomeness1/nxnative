@@ -19,7 +19,6 @@
 #include "hbx_app.h"
 #include <stdint.h>
 
-extern uint64_t nx_probe_cntfrq(void);
 extern int nx_probe_pac_keys(void);
 extern int nx_probe_pac_branch(void);
 extern uint64_t nx_probe_lse_add(volatile uint64_t *address, uint64_t value);
@@ -44,9 +43,13 @@ int hbx_app_main(const struct hbx_ctx *ctx) {
     }
 
     if (stage >= 2u) {
-        out->args[3] = nx_probe_cntfrq();
-        out->args[4] = ctx->tick_hz;
-        out->args[5] = hbx_tick();
+        uint64_t before = hbx_tick();       /* HBLauncher SDK: GetSystemTick, SVC #0x1e */
+        hbx_sleep_ns(1000000u);             /* SleepThread, SVC #0x0b */
+        uint64_t after = hbx_tick();
+        if (!ctx->tick_hz || after <= before) return HBX_ERR_TIMEOUT;
+        out->args[3] = ctx->tick_hz;
+        out->args[4] = before;
+        out->args[5] = after - before;
         reached = 3;
     }
 
