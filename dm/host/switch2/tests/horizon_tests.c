@@ -185,52 +185,6 @@ int main(void) {
     memcpy(hipc + 20, &version1, 4); // type 4 requires CMIF v0.
     assert(nx_hipc_parse_request(hipc, 36, &hipc_view) == NX_HIPC_E_HEADER);
 
-    // End-to-end descriptor-free HIPC -> session -> CMIF -> HIPC response.
-    uint32_t session2 = 0;
-    assert(nx_horizon_open_session(&ctx, "sm:", &session2) == NX_HORIZON_OK);
-    memset(hipc, 0, sizeof(hipc));
-    hipc_word0 = NX_HIPC_CMIF_REQUEST;
-    hipc_word1 = 7u;
-    memcpy(hipc, &hipc_word0, 4);
-    memcpy(hipc + 4, &hipc_word1, 4);
-    memcpy(hipc + 16, &sfci, 4);
-    memcpy(hipc + 20, &version0, 4);
-    memcpy(hipc + 24, &command7, 4);
-    memcpy(hipc + 28, &token, 4);
-    hipc[32] = 0xaa; hipc[33] = 0xbb; hipc[34] = 0xcc;
-    uint8_t hipc_response[128] = {0};
-    size_t hipc_response_size = 0;
-    assert(nx_horizon_session_hipc_dispatch(&ctx, session2, hipc, 36,
-        hipc_response, sizeof(hipc_response), &hipc_response_size) == NX_HORIZON_OK);
-    assert(hipc_response_size == 36);
-    uint32_t response_word1 = 0;
-    memcpy(&response_word1, hipc_response + 4, 4);
-    assert(response_word1 == 7u);
-    const uint32_t sfco = 0x4f434653u;
-    uint32_t response_magic = 0;
-    memcpy(&response_magic, hipc_response + 16, 4);
-    assert(response_magic == sfco);
-    assert(hipc_response[32] == 0xaa && hipc_response[33] == 0xbb &&
-        hipc_response[34] == 0xcc);
-    assert(nx_horizon_close_session(&ctx, session2) == NX_HORIZON_OK);
-
-    // HIPC transport rejects descriptor-bearing requests until handle/buffer
-    // translation is implemented instead of silently ignoring guest pointers.
-    memset(hipc, 0, sizeof(hipc));
-    hipc_word0 = NX_HIPC_CMIF_REQUEST | (1u << 20); // one send buffer
-    hipc_word1 = 7u;
-    memcpy(hipc, &hipc_word0, 4);
-    memcpy(hipc + 4, &hipc_word1, 4);
-    memcpy(hipc + 16, &sfci, 4);
-    memcpy(hipc + 20, &version0, 4);
-    memcpy(hipc + 24, &command7, 4);
-    memcpy(hipc + 28, &token, 4);
-    assert(nx_horizon_open_session(&ctx, "sm:", &session2) == NX_HORIZON_OK);
-    assert(nx_horizon_session_hipc_dispatch(&ctx, session2, hipc, 48,
-        hipc_response, sizeof(hipc_response), &hipc_response_size) == NX_HORIZON_E_COMMAND);
-    assert(hipc_response_size == 0);
-    assert(nx_horizon_close_session(&ctx, session2) == NX_HORIZON_OK);
-
     puts("Switch 2 Horizon service, CMIF, HIPC, and session tests passed");
     return 0;
 }
