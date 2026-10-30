@@ -2,7 +2,7 @@
 
 Status: **research / architecture plan only**. This document does not claim that Switch 2 software currently boots in this repository. The public nxnative codebase is a Nintendo Switch (Tegra X1 / NVN) native-execution project. Switch 2 support is a separate, experimental port.
 
-Target device: **iPad Air (M3), 8 GB unified memory, 9-core GPU**. Keep iPadOS as the first-class target. A Mac build may be used as a development/test host, but it is not the product target.
+Target devices: **iPad Air (M3)** and **iPhone 17 Pro Max (A19 Pro)**. Both iPadOS and iOS are first-class targets, sharing one Switch 2 runtime with device-specific profiles. A Mac build may be used as a development/test host, but it is not the product target.
 
 ## Why a separate backend is required
 
@@ -69,7 +69,7 @@ Implement in this order:
 8. shader loading/translation;
 9. one indexed triangle and a textured quad.
 
-Exit criterion: stable, repeatable homebrew rendering on the M3 iPad Air with validation logs and no Switch 1 regressions.
+Exit criterion: stable, repeatable homebrew rendering on both the M3 iPad Air and A19 Pro iPhone 17 Pro Max with validation logs and no Switch 1 regressions.
 
 ### 4. Performance and compatibility
 
@@ -78,11 +78,21 @@ Exit criterion: stable, repeatable homebrew rendering on the M3 iPad Air with va
 - Do not promise 60 fps; first target correctness and stability at a modest resolution.
 - Add game compatibility only after a title-specific survey and test report.
 
-## M3 iPad Air constraints
+## Target device constraints
 
-Apple lists the M3 iPad Air with an 8-core CPU, 9-core GPU, hardware ray tracing, and 8 GB RAM. That is enough to make it a credible development target for the first graphics smoke test, but 8 GB is a hard practical constraint once iPadOS, the app, guest memory, shader caches, and render targets share unified memory. Large commercial titles may exceed the available budget even if the backend is correct.
+### iPad Air (M3)
 
-The project must query runtime capabilities rather than assume that every Metal feature available on a Mac is available or performant on this iPad. In particular, optional advanced GPU paths must have a conservative fallback.
+The M3 iPad Air has an 8-core CPU, 9-core GPU, and 8 GB unified memory. Treat this as a fixed practical budget shared by iPadOS, the app, guest memory, shader caches, and render targets.
+
+### iPhone 17 Pro Max (A19 Pro)
+
+The iPhone 17 Pro Max uses A19 Pro with a 6-core CPU and 6-core GPU, hardware-accelerated ray tracing, and a vapor-chamber thermal design. Independent reporting based on Xcode 26 identifies 12 GB RAM for this model; treat that as a planning estimate, not an Apple-published specification. Its smaller enclosure requires separate sustained-load testing.
+
+### Shared device strategy
+
+Both devices are credible Apple Silicon targets for the first graphics smoke test. They must not share hard-coded memory or GPU assumptions: query available memory, Metal feature sets, texture limits, and display capabilities at runtime. Large commercial titles may exceed either device's practical budget even if the backend is correct.
+
+Build one portable runtime with per-device profiles. The iPad profile can prioritize resolution and larger touch/controller layouts; the iPhone profile should use a more conservative render scale, memory budget, and thermal governor. Optional advanced GPU paths must have conservative fallbacks on both.
 
 ## Verified vs. experimental
 
@@ -90,7 +100,8 @@ The project must query runtime capabilities rather than assume that every Metal 
 - The Switch 1 path intercepts NVN through `nvnBootstrapLoader`.
 - Its current replay backend uses Metal and zero-copy unified-memory buffers.
 - The existing shader path is based on Tegra X1 / Maxwell shader translation.
-- The target M3 iPad Air has 8 GB RAM and a 9-core GPU (Apple's published specifications).
+- The M3 iPad Air has an 8-core CPU, 9-core GPU, and 8 GB memory.
+- The iPhone 17 Pro Max uses A19 Pro with a 6-core CPU and 6-core GPU; Apple documents its vapor-chamber thermal design. Its 12 GB RAM figure is independently reported from Xcode 26, not published in Apple's spec sheet.
 
 **Experimental / not yet verified here**
 - Switch 2 module execution on this fork.
