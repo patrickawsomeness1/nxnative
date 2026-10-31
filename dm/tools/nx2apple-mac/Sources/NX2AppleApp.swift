@@ -106,11 +106,11 @@ final class BuildController: ObservableObject {
             }
             let codeBase = report["codeBase"] as? String ?? "unknown"
             let dataBase = report["dataBase"] as? String ?? "unknown"
-            packageAssessment = "Verified HBLauncher ABI 3 package: \\(report["id"] as? String ?? "unnamed"). Code/data sizes and SHA-256 hashes match. Fixed bases: \\(codeBase) / \\(dataBase). This validates package integrity only; the Switch 2 runtime and Apple execution bridge are not yet implemented."
+            packageAssessment = "Verified HBLauncher ABI 3 package: \(report["id"] as? String ?? "unnamed"). Code/data sizes and SHA-256 hashes match. Fixed bases: \(codeBase) / \(dataBase). This validates package integrity only; the Switch 2 runtime and Apple execution bridge are not yet implemented."
             gameAssessment = packageAssessment
-            log = "Imported HBLauncher package: \\(url.path)\\n\\(packageAssessment)"
+            log = "Imported HBLauncher package: \(url.path)\n\(packageAssessment)"
         } catch {
-            packageAssessment = "Package validation failed: \\(error.localizedDescription)"
+            packageAssessment = "Package validation failed: \(error.localizedDescription)"
             gameAssessment = packageAssessment
             log = packageAssessment
         }
