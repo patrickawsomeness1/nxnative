@@ -42,6 +42,17 @@ int main(void) {
         &rejected_size) == NX_HORIZON_E_CAPACITY);
     assert(rejected_size == 0);
 
+    // A caller can corrupt the public registry array. Unterminated stored
+    // names must not make lookup run into adjacent fields or later entries.
+    nx_horizon_context corrupt_name = ctx;
+    memset(corrupt_name.services[0].name, 'z', NX_HORIZON_MAX_NAME);
+    assert(nx_horizon_dispatch(&corrupt_name, "sm:", 7, NULL, 0,
+        NULL, 0, &rejected_size) == NX_HORIZON_E_NOT_FOUND);
+    rejected_session = 123;
+    assert(nx_horizon_open_session(&corrupt_name, "sm:", &rejected_session) ==
+        NX_HORIZON_E_NOT_FOUND);
+    assert(rejected_session == 0);
+
     const uint8_t input[] = {1, 2, 3, 4};
     uint8_t output[4] = {0};
     size_t output_size = 0;
