@@ -10,8 +10,13 @@ nx_horizon_status nx_horizon_register_service(
     nx_horizon_context *ctx, const char *name, void *opaque,
     nx_horizon_command_fn dispatch) {
     if (!ctx || !name || !dispatch || !name[0]) return NX_HORIZON_E_ARGUMENT;
-    size_t len = strlen(name);
-    if (len >= NX_HORIZON_MAX_NAME) return NX_HORIZON_E_ARGUMENT;
+    // Bound the scan: callers may pass a fixed-size, unterminated name buffer.
+    size_t len = 0;
+    while (len < NX_HORIZON_MAX_NAME && name[len] != '\0') ++len;
+    if (len == 0 || len >= NX_HORIZON_MAX_NAME)
+        return NX_HORIZON_E_ARGUMENT;
+    if (ctx->service_count > NX_HORIZON_MAX_SERVICES)
+        return NX_HORIZON_E_CAPACITY;
     for (size_t i = 0; i < ctx->service_count; ++i)
         if (strcmp(ctx->services[i].name, name) == 0) return NX_HORIZON_E_DUPLICATE;
     if (ctx->service_count >= NX_HORIZON_MAX_SERVICES) return NX_HORIZON_E_CAPACITY;
@@ -30,9 +35,12 @@ nx_horizon_status nx_horizon_dispatch(
     if (!ctx || !service_name || !response_size ||
         (request_size && !request) || (response_capacity && !response))
         return NX_HORIZON_E_ARGUMENT;
+    if (ctx->service_count > NX_HORIZON_MAX_SERVICES)
+        return NX_HORIZON_E_CAPACITY;
     for (size_t i = 0; i < ctx->service_count; ++i) {
         nx_horizon_service *service = &ctx->services[i];
         if (strcmp(service->name, service_name) != 0) continue;
+        if (!service->dispatch) return NX_HORIZON_E_ARGUMENT;
         nx_horizon_status status = service->dispatch(
             service->opaque, command_id, request, request_size,
             response, response_capacity, response_size);
@@ -46,7 +54,8 @@ nx_horizon_status nx_horizon_dispatch(
 }
 
 size_t nx_horizon_service_count(const nx_horizon_context *ctx) {
-    return ctx ? ctx->service_count : 0;
+    if (!ctx || ctx->service_count > NX_HORIZON_MAX_SERVICES) return 0;
+    return ctx->service_count;
 }
 
 
@@ -102,6 +111,8 @@ nx_horizon_status nx_horizon_open_session(
     nx_horizon_context *ctx, const char *service_name, uint32_t *out_handle) {
     if (out_handle) *out_handle = 0;
     if (!ctx || !service_name || !out_handle) return NX_HORIZON_E_ARGUMENT;
+    if (ctx->service_count > NX_HORIZON_MAX_SERVICES)
+        return NX_HORIZON_E_CAPACITY;
     size_t service_index = ctx->service_count;
     for (size_t i = 0; i < ctx->service_count; ++i) {
         if (strcmp(ctx->services[i].name, service_name) == 0) {
@@ -158,7 +169,8 @@ nx_horizon_status nx_horizon_session_cmif_dispatch(
     for (size_t i = 0; i < NX_HORIZON_MAX_SESSIONS; ++i) {
         nx_horizon_session *session = &ctx->sessions[i];
         if (session->active && session->handle == handle) {
-            if (session->service_index >= ctx->service_count)
+            if (ctx->service_count > NX_HORIZON_MAX_SERVICES ||
+                session->service_index >= ctx->service_count)
                 return NX_HORIZON_E_NOT_FOUND;
             return nx_horizon_cmif_dispatch(ctx,
                 ctx->services[session->service_index].name,
