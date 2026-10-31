@@ -16,6 +16,7 @@ final class BuildController: ObservableObject {
     @Published var selectedGame = ""
     @Published var deviceID = ""
     @Published var teamID = ""
+    @Published var teamID = ""
     @Published var log = "Choose your nxnative repository folder to get started."
     @Published var busy = false
     @Published var gameAssessment = "No game selected"
@@ -97,7 +98,8 @@ final class BuildController: ObservableObject {
             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
             <plist version="1.0"><dict>
               <key>method</key><string>development</string>
-              <key>signingStyle</key><string>automatic</string>\n              <key>teamID</key><string>\\(teamID)</string>
+              <key>signingStyle</key><string>automatic</string>
+              <key>teamID</key><string>\(teamID)</string>\n              <key>teamID</key><string>\\(teamID)</string>
               <key>destination</key><string>export</string>
             </dict></plist>
             """
@@ -192,6 +194,8 @@ struct DashboardView: View {
                         .disabled(controller.busy)
                     }
                     HStack {
+                        TextField("Apple Developer Team ID", text: $controller.teamID)
+                            .textFieldStyle(.roundedBorder)
                         TextField("Connected device UDID", text: $controller.deviceID)
                             .textFieldStyle(.roundedBorder)
                         Button("Install diagnostic app") {
