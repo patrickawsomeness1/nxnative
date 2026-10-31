@@ -89,7 +89,7 @@ final class BuildController: ObservableObject {
                 "-project", "dm/tests/switch2/ios/Switch2Bringup.xcodeproj",
                 "-scheme", "Switch2Bringup", "-configuration", "Release",
                 "-destination", "generic/platform=iOS",
-                "-archivePath", archive.path, "-allowProvisioningUpdates", "DEVELOPMENT_TEAM=\\(teamID)", "archive"
+                "-archivePath", archive.path, "-allowProvisioningUpdates", "DEVELOPMENT_TEAM=\(teamID)", "archive"
             ], cwd: root)
             log += "\nExporting signed development IPA (requires Xcode signing account and provisioning)…"
             let options = build.appending(path: "ExportOptions.plist")
@@ -99,7 +99,7 @@ final class BuildController: ObservableObject {
             <plist version="1.0"><dict>
               <key>method</key><string>development</string>
               <key>signingStyle</key><string>automatic</string>
-              <key>teamID</key><string>\(teamID)</string>\n              <key>teamID</key><string>\\(teamID)</string>
+              <key>teamID</key><string>\(teamID)</string>
               <key>destination</key><string>export</string>
             </dict></plist>
             """
