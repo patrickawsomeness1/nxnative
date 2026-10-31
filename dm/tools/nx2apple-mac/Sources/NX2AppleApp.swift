@@ -22,6 +22,7 @@ final class BuildController: ObservableObject {
     @Published var gameAssessment = "No game selected"
     @Published var packageAssessment = "No HBLauncher package selected"
     @Published var ipaPath = ""
+    private var scopedRepositoryURL: URL?
 
     private func run(_ executable: String, _ arguments: [String], cwd: URL? = nil) async throws -> String {
         try await Task.detached(priority: .userInitiated) {
@@ -45,7 +46,8 @@ final class BuildController: ObservableObject {
     }
 
     func chooseRepository(_ url: URL) {
-        _ = url.startAccessingSecurityScopedResource()
+        if let previous = scopedRepositoryURL { previous.stopAccessingSecurityScopedResource() }
+        if url.startAccessingSecurityScopedResource() { scopedRepositoryURL = url }
         repository = url.path
         log = "Repository: \(url.path)\nChecking required project files…"
         let iosSpec = url.appending(path: "dm/tests/switch2/ios/Project.yml")
@@ -59,44 +61,83 @@ final class BuildController: ObservableObject {
     }
 
     func chooseGame(_ url: URL) {
+        let hasScope = url.startAccessingSecurityScopedResource()
+        defer { if hasScope { url.stopAccessingSecurityScopedResource() } }
         selectedGame = url.path
         let ext = url.pathExtension.lowercased()
         let fileName = url.lastPathComponent.lowercased()
-        let nameParts = fileName.split(separator: ".")
-        let isSplitPackagePart = nameParts.count >= 2 && ["nsp", "xci"].contains(String(nameParts[nameParts.count - 2])) && (2...3).contains(nameParts.last?.count ?? 0) && (nameParts.last?.allSatisfy { $0.isNumber } ?? false)
-        let formats: [String: (String, String)] = [
-            "nsp": ("Nintendo Switch package", "PFS0 package container. Retail content is commonly encrypted; parsing, installation, and execution are not yet implemented."),
-            "xci": ("Nintendo Switch game-card image", "XCI game-card container. Parsing, secure-partition handling, and execution are not yet implemented."),
-            "nsz": ("Compressed NSP package", "NSZ is a compressed NSP-family package. Decompression and package parsing are not yet implemented."),
-            "xcz": ("Compressed XCI image", "XCZ is a compressed XCI-family image. Decompression and game-card parsing are not yet implemented."),
-            "nca": ("Nintendo Content Archive", "NCA content archive. Encrypted content handling, metadata interpretation, and loading are not yet implemented."),
-            "ncz": ("Compressed Nintendo Content Archive", "NCZ is a compressed NCA payload. Decompression and subsequent NCA processing are not yet implemented."),
-            "nro": ("Nintendo Switch homebrew executable", "NRO homebrew format recognized. A verified Switch 2 loader and runtime are not yet implemented."),
-            "nso": ("Nintendo Switch system/module executable", "NSO module recognized. The existing patcher is not a Switch 2 loader; native execution is not yet implemented."),
-            "elf": ("ELF executable/object", "ELF container recognized. CPU architecture, ABI, relocations, and runtime compatibility must be validated before execution."),
-            "kip": ("Horizon kernel initial process module", "KIP module recognized by extension only. Switch 2 kernel/module compatibility is not established."),
-            "kip1": ("Horizon kernel initial process module", "KIP1 module recognized by extension only. Switch 2 kernel/module compatibility is not established."),
-            "nacp": ("Application control metadata", "NACP metadata file recognized. It is metadata, not a directly launchable game executable."),
-            "tik": ("Ticket metadata", "Ticket file recognized. NX2Apple will not bypass ticket checks or decrypt protected content."),
-            "cert": ("Certificate data", "Certificate file recognized as supporting package data; it is not a game executable."),
-            "cnmt": ("Content meta metadata", "CNMT metadata recognized. The referenced content and its dependencies still need supported package processing."),
-            "romfs": ("RomFS filesystem image", "RomFS data recognized. It is data, not a standalone executable."),
-            "nax": ("Nintendo encrypted archive data", "NAX-family encrypted data recognized by extension only. Key handling and decryption are not implemented."),
-            "pfs0": ("PFS0 filesystem/container", "PFS0 container recognized. Entry parsing and content execution are not yet implemented."),
-            "hfs0": ("HFS0 filesystem/container", "HFS0 container recognized. Entry parsing and content execution are not yet implemented.")
+        let parts = fileName.split(separator: ".")
+        let isSplitPackagePart = parts.count >= 2 &&
+            ["nsp", "xci"].contains(String(parts[parts.count - 2])) &&
+            (2...3).contains(parts.last?.count ?? 0) &&
+            (parts.last?.allSatisfy { $0.isNumber } ?? false)
+
+        var magic = ""
+        if let handle = try? FileHandle(forReadingFrom: url) {
+            defer { try? handle.close() }
+            let bytes = (try? handle.read(upToCount: 0x204)) ?? Data()
+            if bytes.count >= 4 {
+                magic = String(bytes: bytes.prefix(4), encoding: .ascii) ?? ""
+            }
+            if bytes.count >= 0x104 {
+                let xci = String(bytes: bytes[0x100..<0x104], encoding: .ascii) ?? ""
+                if xci == "HEAD" { magic = "XCIHEAD" }
+            }
+            if bytes.count >= 0x204 {
+                let nca = String(bytes: bytes[0x200..<0x204], encoding: .ascii) ?? ""
+                if nca == "NCA2" || nca == "NCA3" { magic = nca }
+            }
+        }
+
+        let signatures: [String: String] = [
+            "PFS0": "PFS0 container (NSP-family)",
+            "HFS0": "HFS0 container (XCI-family)",
+            "NSO0": "NSO executable module",
+            "NRO0": "NRO homebrew executable",
+            "KIP1": "KIP1 Horizon module",
+            "XCIHEAD": "XCI game-card image",
+            "NCA2": "NCA2 content archive",
+            "NCA3": "NCA3 content archive",
+            "\u{7f}ELF": "ELF executable/object"
         ]
-        if let item = formats[ext] {
-            gameAssessment = "\(item.0): \(item.1)"
+        let formats: [String: String] = [
+            "nsp": "NSP package; parsing, installation, and execution are not implemented.",
+            "xci": "XCI game-card image; secure-partition processing and execution are not implemented.",
+            "nsz": "Compressed NSP-family package; decompression and parsing are not implemented.",
+            "xcz": "Compressed XCI-family image; decompression and parsing are not implemented.",
+            "nca": "NCA content archive; encrypted-content processing and loading are not implemented.",
+            "ncz": "Compressed NCA payload; decompression and NCA processing are not implemented.",
+            "nro": "NRO homebrew executable; a verified Switch 2 loader/runtime is not implemented.",
+            "nso": "NSO module; the Switch 1 patcher is not a Switch 2 loader.",
+            "elf": "ELF executable/object; architecture, ABI, and relocations need validation.",
+            "kip": "KIP module; Switch 2 compatibility is not established.",
+            "kip1": "KIP1 module; Switch 2 compatibility is not established.",
+            "nacp": "NACP application metadata; not a standalone executable.",
+            "tik": "Ticket metadata; no ticket bypass or protected-content decryption is performed.",
+            "cert": "Certificate data; not a game executable.",
+            "cnmt": "CNMT content metadata; referenced content still needs package processing.",
+            "romfs": "RomFS filesystem data; not a standalone executable.",
+            "nax": "NAX encrypted data; key handling and decryption are not implemented.",
+            "pfs0": "PFS0 filesystem/container; entry parsing is not implemented.",
+            "hfs0": "HFS0 filesystem/container; entry parsing is not implemented.",
+            "npdm": "NPDM process metadata; not a standalone executable."
+        ]
+
+        if let detected = signatures[magic] {
+            gameAssessment = "File signature: \(detected). Full parsing/loading is not yet implemented."
+        } else if let description = formats[ext] {
+            gameAssessment = description
         } else if isSplitPackagePart {
-            gameAssessment = "Split Switch package part recognized by filename. All numbered parts are required; joining, validation, and package processing are not yet implemented."
+            gameAssessment = "Split NSP/XCI part recognized by filename. All parts are required; assembly and validation are not implemented."
         } else {
-            gameAssessment = "Unknown or unsupported extension. The file is selected, but its format has not been identified; no execution is attempted."
+            gameAssessment = "Unknown format. No supported signature or extension was detected; no execution is attempted."
         }
         log = "Selected: \(url.path)\n\(gameAssessment)"
     }
 
     func chooseHBXPackage(_ url: URL) {
-        _ = url.startAccessingSecurityScopedResource()
+        let hasScope = url.startAccessingSecurityScopedResource()
+        defer { if hasScope { url.stopAccessingSecurityScopedResource() } }
         selectedGame = url.path
         let manifestURL = url.appending(path: "manifest.json")
         let buildURL = url.appending(path: "build")
@@ -274,7 +315,7 @@ struct DashboardView: View {
                     Text(controller.packageAssessment).font(.callout).foregroundStyle(.secondary)
                 }.padding(6)
             }
-            GroupBox("3 · Build and install") {
+            GroupBox("4 · Build and install") {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Button {
