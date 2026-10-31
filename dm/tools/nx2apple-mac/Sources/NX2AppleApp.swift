@@ -75,7 +75,6 @@ final class BuildController: ObservableObject {
             "kip": ("Horizon kernel initial process module", "KIP module recognized by extension only. Switch 2 kernel/module compatibility is not established."),
             "kip1": ("Horizon kernel initial process module", "KIP1 module recognized by extension only. Switch 2 kernel/module compatibility is not established."),
             "nacp": ("Application control metadata", "NACP metadata file recognized. It is metadata, not a directly launchable game executable."),
-            "nacp": ("Application control metadata", "NACP metadata file recognized. It is metadata, not a directly launchable game executable."),
             "tik": ("Ticket metadata", "Ticket file recognized. NX2Apple will not bypass ticket checks or decrypt protected content."),
             "cert": ("Certificate data", "Certificate file recognized as supporting package data; it is not a game executable."),
             "cnmt": ("Content meta metadata", "CNMT metadata recognized. The referenced content and its dependencies still need supported package processing."),
