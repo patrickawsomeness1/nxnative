@@ -72,6 +72,7 @@ final class BuildController: ObservableObject {
 
     func buildDiagnosticIPA() async {
         guard !repository.isEmpty else { log = "Select the nxnative repository folder first."; return }
+        guard !teamID.trimmingCharacters(in: .whitespaces).isEmpty else { log = "Enter your Apple Developer Team ID before requesting a signed IPA."; return }
         let root = URL(fileURLWithPath: repository)
         guard FileManager.default.fileExists(atPath: root.appending(path: "dm/tests/switch2/ios/Project.yml").path) else {
             log = "The selected folder is not the nxnative repository root."; return
@@ -80,7 +81,7 @@ final class BuildController: ObservableObject {
         defer { busy = false }
         log = "Generating the iOS project…"
         do {
-            _ = try await run("/usr/bin/env", ["xcodegen", "generate", "--spec", "dm/tests/switch2/ios/Project.yml"], cwd: root)
+            _ = try await run("/usr/bin/env", ["xcodegen", "generate", "--spec", "dm/tests/switch2/ios/Project.yml", "--project", "dm/tests/switch2/ios"], cwd: root)
             log += "\nArchiving the Switch 2 hardware diagnostic app…"
             let build = root.appending(path: "build/NX2Apple")
             try FileManager.default.createDirectory(at: build, withIntermediateDirectories: true)
