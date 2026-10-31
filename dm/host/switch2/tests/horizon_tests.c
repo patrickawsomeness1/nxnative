@@ -198,6 +198,42 @@ int main(void) {
     assert(hipc_view.data_words == hipc + 72 && hipc_view.recv_list == hipc + 100);
     assert(hipc_view.cmif_request == hipc + 80);
 
+    // The session bridge must reject descriptor-bearing requests rather than
+    // treating guest pointers/handles as host pointers or silently dropping them.
+    uint32_t descriptor_session = 0;
+    assert(nx_horizon_open_session(&ctx, "sm:", &descriptor_session) == NX_HORIZON_OK);
+    uint8_t descriptor_response[128];
+    memset(descriptor_response, 0xa5, sizeof(descriptor_response));
+    size_t descriptor_response_size = 99;
+    assert(nx_horizon_session_hipc_dispatch(&ctx, descriptor_session, hipc, 108,
+        descriptor_response, sizeof(descriptor_response),
+        &descriptor_response_size) == NX_HORIZON_E_COMMAND);
+    assert(descriptor_response_size == 0);
+    assert(descriptor_response[0] == 0xa5);
+    assert(nx_horizon_close_session(&ctx, descriptor_session) == NX_HORIZON_OK);
+
+    // A response buffer that cannot hold the complete HIPC reply is rejected
+    // without publishing a partial response.
+    memset(hipc, 0, sizeof(hipc));
+    hipc_word0 = NX_HIPC_CMIF_REQUEST;
+    hipc_word1 = 7;
+    memcpy(hipc, &hipc_word0, 4);
+    memcpy(hipc + 4, &hipc_word1, 4);
+    memcpy(hipc + 16, &sfci, 4);
+    memcpy(hipc + 20, &version0, 4);
+    memcpy(hipc + 24, &command7, 4);
+    memcpy(hipc + 28, &token, 4);
+    hipc[32] = 9; hipc[33] = 8; hipc[34] = 7;
+    uint32_t short_session = 0;
+    assert(nx_horizon_open_session(&ctx, "sm:", &short_session) == NX_HORIZON_OK);
+    memset(hipc_response, 0xa5, sizeof(hipc_response));
+    hipc_response_size = 99;
+    assert(nx_horizon_session_hipc_dispatch(&ctx, short_session, hipc, 36,
+        hipc_response, 35, &hipc_response_size) == NX_HORIZON_E_BUFFER);
+    assert(hipc_response_size == 0);
+    assert(hipc_response[0] == 0xa5);
+    assert(nx_horizon_close_session(&ctx, short_session) == NX_HORIZON_OK);
+
     // Malformed and truncated messages fail before exposing any guest pointers.
     assert(nx_hipc_parse_request(hipc, 7, &hipc_view) == NX_HIPC_E_BUFFER);
     assert(hipc_view.data_words == NULL && hipc_view.cmif_request == NULL);
