@@ -169,9 +169,35 @@ final class BuildController: ObservableObject {
                   dataHash == (report["dataSha256"] as? String) else {
                 throw NSError(domain: "NX2Apple", code: 12, userInfo: [NSLocalizedDescriptionKey: "The code/data files do not match the SDK build report. Rebuild the package before importing it."])
             }
-            let codeBase = report["codeBase"] as? String ?? "unknown"
-            let dataBase = report["dataBase"] as? String ?? "unknown"
-            packageAssessment = "Verified HBLauncher ABI 3 package: \(report["id"] as? String ?? "unnamed"). Code/data sizes and SHA-256 hashes match. Fixed bases: \(codeBase) / \(dataBase). This validates package integrity only; the Switch 2 runtime and Apple execution bridge are not yet implemented."
+            guard let codeBaseText = report["codeBase"] as? String,
+                  let dataBaseText = report["dataBase"] as? String,
+                  let entryText = report["entry"] as? String,
+                  let dataRegionBytes = report["dataRegionBytes"] as? Int,
+                  let codePages = report["codePages"] as? Int,
+                  dataRegionBytes >= data.count,
+                  codePages == (code.count + 0xFFF) / 0x1000 else {
+                throw NSError(domain: "NX2Apple", code: 13, userInfo: [NSLocalizedDescriptionKey: "The build report is missing valid address/region metadata."])
+            }
+            func parseAddress(_ value: String) -> UInt64? {
+                let digits = value.lowercased().hasPrefix("0x") ? String(value.dropFirst(2)) : value
+                return UInt64(digits, radix: 16)
+            }
+            guard let codeBase = parseAddress(codeBaseText),
+                  let dataBase = parseAddress(dataBaseText),
+                  let entry = parseAddress(entryText),
+                  codeBase % 0x1000 == 0, dataBase % 0x1000 == 0,
+                  entry == codeBase,
+                  let codeEnd = UInt64(code.count).addingReportingOverflow(codeBase).partialValue as UInt64?,
+                  let dataEnd = UInt64(dataRegionBytes).addingReportingOverflow(dataBase).partialValue as UInt64? else {
+                throw NSError(domain: "NX2Apple", code: 14, userInfo: [NSLocalizedDescriptionKey: "The package has invalid or unaligned fixed-address metadata."])
+            }
+            let codeOverflow = UInt64(code.count).addingReportingOverflow(codeBase).overflow
+            let dataOverflow = UInt64(dataRegionBytes).addingReportingOverflow(dataBase).overflow
+            guard !codeOverflow, !dataOverflow,
+                  codeEnd <= dataBase || dataEnd <= codeBase else {
+                throw NSError(domain: "NX2Apple", code: 15, userInfo: [NSLocalizedDescriptionKey: "The package code and data memory regions overlap or overflow."])
+            }
+            packageAssessment = "Verified HBLauncher ABI 3 package: \(report["id"] as? String ?? "unnamed"). Hashes, sizes, entry point, alignment, and memory regions match the report. Fixed bases: \(codeBaseText) / \(dataBaseText). Integrity validation only; Apple runtime is not implemented."
             gameAssessment = packageAssessment
             log = "Imported HBLauncher package: \(url.path)\n\(packageAssessment)"
         } catch {
