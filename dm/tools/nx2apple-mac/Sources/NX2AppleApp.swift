@@ -62,6 +62,8 @@ final class BuildController: ObservableObject {
         selectedGame = url.path
         let ext = url.pathExtension.lowercased()
         let fileName = url.lastPathComponent.lowercased()
+        let nameParts = fileName.split(separator: ".")
+        let isSplitPackagePart = nameParts.count >= 2 && ["nsp", "xci"].contains(String(nameParts[nameParts.count - 2])) && (2...3).contains(nameParts.last?.count ?? 0) && (nameParts.last?.allSatisfy { $0.isNumber } ?? false)
         let formats: [String: (String, String)] = [
             "nsp": ("Nintendo Switch package", "PFS0 package container. Retail content is commonly encrypted; parsing, installation, and execution are not yet implemented."),
             "xci": ("Nintendo Switch game-card image", "XCI game-card container. Parsing, secure-partition handling, and execution are not yet implemented."),
@@ -85,7 +87,7 @@ final class BuildController: ObservableObject {
         ]
         if let item = formats[ext] {
             gameAssessment = "\(item.0): \(item.1)"
-        } else if { let parts = fileName.split(separator: "."); return parts.count >= 2 && ["nsp", "xci"].contains(String(parts[parts.count - 2])) && (2...3).contains(parts.last?.count ?? 0) && (parts.last?.allSatisfy { $0.isNumber } ?? false) }() {
+        } else if isSplitPackagePart {
             gameAssessment = "Split Switch package part recognized by filename. All numbered parts are required; joining, validation, and package processing are not yet implemented."
         } else {
             gameAssessment = "Unknown or unsupported extension. The file is selected, but its format has not been identified; no execution is attempted."
