@@ -1,6 +1,5 @@
 import SwiftUI
 import UniformTypeIdentifiers
-import CryptoKit
 
 @main
 struct NX2AppleApp: App {
