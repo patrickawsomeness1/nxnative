@@ -8,7 +8,7 @@ static int nx_horizon_name_equal(const char *left, const char *right) {
     if (!left || !right) return 0;
     for (size_t i = 0; i < NX_HORIZON_MAX_NAME; ++i) {
         if (left[i] != right[i]) return 0;
-        if (left[i] == '\\0') return 1;
+        if (left[i] == '\0') return 1;
     }
     return 0;
 }
