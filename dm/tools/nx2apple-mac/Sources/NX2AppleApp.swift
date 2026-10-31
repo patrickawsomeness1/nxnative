@@ -169,7 +169,7 @@ final class BuildController: ObservableObject {
             let summary = try HBLauncherPackageInspector.inspect(
                 manifestData: manifestData, reportData: reportData, code: code, data: data
             )
-            packageAssessment = "Verified HBLauncher ABI 3 package: \(summary.identifier). Hashes, sizes, entry point, alignment, and memory regions match the report. Fixed bases: \(codeBaseText) / \(dataBaseText). Integrity validation only; Apple runtime is not implemented."
+            packageAssessment = "Verified HBLauncher ABI 3 package: \(summary.identifier). Hashes, sizes, entry point, alignment, and memory regions match the report. Fixed bases: 0x\(String(summary.codeBase, radix: 16)) / 0x\(String(summary.dataBase, radix: 16)). Integrity validation only; Apple runtime is not implemented."
             gameAssessment = packageAssessment
             log = "Imported HBLauncher package: \(url.path)\n\(packageAssessment)"
         } catch {
