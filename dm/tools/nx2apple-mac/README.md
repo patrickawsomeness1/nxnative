@@ -14,7 +14,7 @@ A native SwiftUI front end for the nxnative Switch 2 bring-up workflow.
 - List paired iPhone/iPad devices with `xcrun devicectl`.
 - Install the diagnostic app to a selected device by UDID.
 
-## Run the container parser tests
+## Run the Swift validation tests
 
 ```sh
 cd dm/tools/nx2apple-mac
