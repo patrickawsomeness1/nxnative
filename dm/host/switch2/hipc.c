@@ -22,7 +22,7 @@ static int nx_hipc_take(
     return 1;
 }
 
-nx_hipc_status nx_hipc_parse_request(
+static nx_hipc_status nx_hipc_parse_request_impl(
     const uint8_t *buffer, size_t buffer_size, nx_hipc_view *out) {
     if (out) memset(out, 0, sizeof(*out));
     if (!buffer || !out) return NX_HIPC_E_ARGUMENT;
@@ -104,4 +104,18 @@ nx_hipc_status nx_hipc_parse_request(
         out->cmif_available = data_end - cmif_offset;
     }
     return NX_HIPC_OK;
+}
+
+
+// Never publish partially parsed descriptor pointers on a malformed message.
+// Callers may inspect the view after any status, so expose it only on success.
+nx_hipc_status nx_hipc_parse_request(
+    const uint8_t *buffer, size_t buffer_size, nx_hipc_view *out) {
+    if (!out) return NX_HIPC_E_ARGUMENT;
+    memset(out, 0, sizeof(*out));
+    nx_hipc_view parsed;
+    nx_hipc_status status =
+        nx_hipc_parse_request_impl(buffer, buffer_size, &parsed);
+    if (status == NX_HIPC_OK) *out = parsed;
+    return status;
 }
