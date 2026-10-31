@@ -136,13 +136,23 @@ final class BuildController: ObservableObject {
         busy = true
         defer { busy = false }
         do {
-            log = try await run("/usr/bin/xcrun", [
+            let app = URL(fileURLWithPath: repository)
+                .appending(path: "build/NX2Apple/Switch2Bringup.xcarchive/Products/Applications/Switch2Bringup.app")
+            guard FileManager.default.fileExists(atPath: app.path) else {
+                throw NSError(domain: "NX2Apple", code: 3, userInfo: [
+                    NSLocalizedDescriptionKey: "The archived diagnostic app was not found. Build and export the signed diagnostic IPA first."
+                ])
+            }
+            log = "Verifying the archived app signature…"
+            _ = try await run("/usr/bin/codesign", ["--verify", "--deep", "--strict", "--verbose=2", app.path])
+            log += "\nInstalling the verified diagnostic app…"
+            log += try await run("/usr/bin/xcrun", [
                 "devicectl", "device", "install", "app",
                 "--device", deviceID.trimmingCharacters(in: .whitespaces),
-                URL(fileURLWithPath: repository).appending(path: "build/NX2Apple/Switch2Bringup.xcarchive/Products/Applications/Switch2Bringup.app").path
+                app.path
             ])
-            log += "\nInstall command completed."
-        } catch { log = "Install failed: \(error.localizedDescription)" }
+            log += "\nInstall command completed successfully."
+        } catch { log += "\nInstall failed: \(error.localizedDescription)" }
     }
 }
 
