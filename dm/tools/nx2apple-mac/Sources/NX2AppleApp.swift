@@ -16,7 +16,6 @@ final class BuildController: ObservableObject {
     @Published var selectedGame = ""
     @Published var deviceID = ""
     @Published var teamID = ""
-    @Published var teamID = ""
     @Published var log = "Choose your nxnative repository folder to get started."
     @Published var busy = false
     @Published var gameAssessment = "No game selected"
