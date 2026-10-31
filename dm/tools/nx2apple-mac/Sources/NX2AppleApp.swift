@@ -164,51 +164,12 @@ final class BuildController: ObservableObject {
                   let report = try JSONSerialization.jsonObject(with: reportData) as? [String: Any] else {
                 throw NSError(domain: "NX2Apple", code: 10, userInfo: [NSLocalizedDescriptionKey: "Package manifest or build report is not valid JSON."])
             }
-            guard (report["format"] as? String) == "hblauncher-native-app/1",
-                  (report["abi"] as? Int) == 3,
-                  (manifest["abi"] as? Int) == 3,
-                  (manifest["id"] as? String) == (report["id"] as? String),
-                  (manifest["kind"] as? String) == "native",
-                  (report["kind"] as? String) == "native" else {
-                throw NSError(domain: "NX2Apple", code: 11, userInfo: [NSLocalizedDescriptionKey: "This is not a matching HBLauncher Native ABI 3 package."])
-            }
             let code = try Data(contentsOf: codeURL, options: .mappedIfSafe)
             let data = try Data(contentsOf: dataURL, options: .mappedIfSafe)
-            let codeHash = SHA256.hash(data: code).map { String(format: "%02x", $0) }.joined()
-            let dataHash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
-            guard code.count == (report["codeBytes"] as? Int),
-                  data.count == (report["dataBytes"] as? Int),
-                  codeHash == (report["codeSha256"] as? String),
-                  dataHash == (report["dataSha256"] as? String) else {
-                throw NSError(domain: "NX2Apple", code: 12, userInfo: [NSLocalizedDescriptionKey: "The code/data files do not match the SDK build report. Rebuild the package before importing it."])
-            }
-            guard let codeBaseText = report["codeBase"] as? String,
-                  let dataBaseText = report["dataBase"] as? String,
-                  let entryText = report["entry"] as? String,
-                  let dataRegionBytes = report["dataRegionBytes"] as? Int,
-                  let codePages = report["codePages"] as? Int,
-                  dataRegionBytes >= data.count,
-                  codePages == (code.count + 0xFFF) / 0x1000 else {
-                throw NSError(domain: "NX2Apple", code: 13, userInfo: [NSLocalizedDescriptionKey: "The build report is missing valid address/region metadata."])
-            }
-            func parseAddress(_ value: String) -> UInt64? {
-                let digits = value.lowercased().hasPrefix("0x") ? String(value.dropFirst(2)) : value
-                return UInt64(digits, radix: 16)
-            }
-            guard let codeBase = parseAddress(codeBaseText),
-                  let dataBase = parseAddress(dataBaseText),
-                  let entry = parseAddress(entryText),
-                  codeBase % 0x1000 == 0, dataBase % 0x1000 == 0,
-                  entry == codeBase else {
-                throw NSError(domain: "NX2Apple", code: 14, userInfo: [NSLocalizedDescriptionKey: "The package has invalid or unaligned fixed-address metadata."])
-            }
-            let codeRange = UInt64(code.count).addingReportingOverflow(codeBase)
-            let dataRange = UInt64(dataRegionBytes).addingReportingOverflow(dataBase)
-            guard !codeRange.overflow, !dataRange.overflow,
-                  codeRange.partialValue <= dataBase || dataRange.partialValue <= codeBase else {
-                throw NSError(domain: "NX2Apple", code: 15, userInfo: [NSLocalizedDescriptionKey: "The package code and data memory regions overlap or overflow."])
-            }
-            packageAssessment = "Verified HBLauncher ABI 3 package: \(report["id"] as? String ?? "unnamed"). Hashes, sizes, entry point, alignment, and memory regions match the report. Fixed bases: \(codeBaseText) / \(dataBaseText). Integrity validation only; Apple runtime is not implemented."
+            let summary = try HBLauncherPackageInspector.inspect(
+                manifestData: manifestData, reportData: reportData, code: code, data: data
+            )
+            packageAssessment = "Verified HBLauncher ABI 3 package: \(summary.identifier). Hashes, sizes, entry point, alignment, and memory regions match the report. Fixed bases: \(codeBaseText) / \(dataBaseText). Integrity validation only; Apple runtime is not implemented."
             gameAssessment = packageAssessment
             log = "Imported HBLauncher package: \(url.path)\n\(packageAssessment)"
         } catch {
