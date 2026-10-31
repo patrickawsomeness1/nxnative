@@ -44,3 +44,10 @@ See [the M3 bring-up plan](../../../docs/switch2-m3-port-plan.md).
 ## Verified SDK syscall overlap
 
 The pinned HBLauncher Native SDK calls `SVC 0x1e` for `GetSystemTick` and `SVC 0x0b` for `SleepThread`. nxnative's current HLE already dispatches these through `hle_svc.c` and `hle_thread.c`. The console-side probe exercises both and reports the SDK-provided tick frequency and measured elapsed ticks. This confirms an ABI overlap in the SDK source, not yet a successful Switch 2 runtime test; the native console frequency must be measured on hardware.
+
+
+## Latest hardening milestone
+
+The host-side boundary tests now also verify that descriptor-bearing HIPC requests are rejected without publishing a response, and that an undersized response buffer is rejected without partial output. These are negative-path safety tests, not evidence that the corresponding Horizon descriptors are supported.
+
+The next implementation gate is not another guessed service stub. It is an evidence-backed minimal console trace for a self-built Switch 2 test program: process entry, one known SVC call, one named-port/session exchange, and the exact request/response bytes with sensitive payloads omitted. Until those observations exist, the current HIPC/CMIF layer remains a host-side framing prototype and must not be connected to retail-game execution.
