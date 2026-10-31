@@ -4,19 +4,55 @@
   "title": "nxnative Switch 2 Homebrew Survey",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "status", "target", "modules", "observations"],
+  "required": [
+    "schemaVersion",
+    "status",
+    "target",
+    "modules",
+    "observations"
+  ],
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "status": { "enum": ["draft", "captured", "reviewed"] },
+    "schemaVersion": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "captured",
+        "reviewed"
+      ]
+    },
     "target": {
       "type": "object",
-      "required": ["platform", "sdkVersion"],
+      "required": [
+        "platform",
+        "sdkVersion"
+      ],
       "properties": {
-        "platform": { "const": "Nintendo Switch 2" },
-        "sdkVersion": { "type": ["string", "null"] },
-        "osVersion": { "type": ["string", "null"] },
-        "testProgram": { "type": "string" },
-        "buildHash": { "type": ["string", "null"] }
+        "platform": {
+          "const": "Nintendo Switch 2"
+        },
+        "sdkVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "osVersion": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "testProgram": {
+          "type": "string"
+        },
+        "buildHash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       },
       "additionalProperties": false
     },
@@ -24,13 +60,32 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["name", "format", "architecture", "evidence"],
+        "required": [
+          "name",
+          "format",
+          "architecture",
+          "evidence"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "format": { "type": "string" },
-          "architecture": { "type": "string" },
-          "buildId": { "type": ["string", "null"] },
-          "evidence": { "$ref": "#/$defs/evidence" }
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "format": {
+            "type": "string"
+          },
+          "architecture": {
+            "type": "string"
+          },
+          "buildId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          }
         },
         "additionalProperties": false
       }
@@ -39,27 +94,173 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["area", "name", "value", "confidence", "evidence"],
+        "required": [
+          "area",
+          "name",
+          "value",
+          "confidence",
+          "evidence"
+        ],
         "properties": {
-          "area": { "enum": ["loader", "imports", "svc", "ipc", "memory", "nvn2", "shader", "presentation", "other"] },
-          "name": { "type": "string", "minLength": 1 },
+          "area": {
+            "enum": [
+              "loader",
+              "imports",
+              "svc",
+              "ipc",
+              "memory",
+              "nvn2",
+              "shader",
+              "presentation",
+              "other"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
           "value": {},
-          "confidence": { "enum": ["observed", "inferred", "unknown"] },
-          "evidence": { "$ref": "#/$defs/evidence" }
+          "confidence": {
+            "enum": [
+              "observed",
+              "inferred",
+              "unknown"
+            ]
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          }
         },
         "additionalProperties": false
       }
     },
-    "notes": { "type": "string" }
+    "graphicsTrace": {
+      "type": "array",
+      "description": "Optional ordered NVN2 observations. Record only calls actually observed from an authorized self-built test or documented SDK material; never infer signatures from Switch 1 NVN.",
+      "items": {
+        "type": "object",
+        "required": [
+          "sequence",
+          "symbol",
+          "phase",
+          "evidence"
+        ],
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "thread": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 1
+          },
+          "phase": {
+            "enum": [
+              "query",
+              "create",
+              "bind",
+              "submit",
+              "wait",
+              "present",
+              "destroy",
+              "other"
+            ]
+          },
+          "arguments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "index",
+                "kind",
+                "value"
+              ],
+              "properties": {
+                "index": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "kind": {
+                  "enum": [
+                    "integer",
+                    "enum",
+                    "boolean",
+                    "size",
+                    "handle",
+                    "pointer-opaque",
+                    "bytes-hash",
+                    "unknown"
+                  ]
+                },
+                "value": {},
+                "meaning": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "result": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "value": {},
+              "meaning": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "evidence": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "notes": {
+      "type": "string"
+    }
   },
   "$defs": {
     "evidence": {
       "type": "object",
-      "required": ["source", "observation"],
+      "required": [
+        "source",
+        "observation"
+      ],
       "properties": {
-        "source": { "type": "string", "minLength": 1 },
-        "offset": { "type": ["string", "null"] },
-        "observation": { "type": "string", "minLength": 1 }
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offset": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observation": {
+          "type": "string",
+          "minLength": 1
+        }
       },
       "additionalProperties": false
     }
