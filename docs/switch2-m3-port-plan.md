@@ -206,3 +206,12 @@ Still missing: captured traffic from a self-built Switch 2 homebrew app, service
 ### HBLauncher adapter analysis
 
 The pinned HBLauncher Native SDK package now has a dedicated ABI and loader compatibility note: [HBLauncher-to-nxnative adapter findings](switch2-hblauncher-adapter.md). The note records its fixed code/data addresses, ABI 3 context layout, entry trampoline, Horizon SVC dependencies, and why its flat package cannot be passed directly to nxnative's NSO loader. The next runtime step is a separate nxnative-native CPU probe ABI, not pretending the HBLauncher image is an NSO.
+
+
+### Experimental service-manager probe stage (2026-10-30)
+
+The HBLauncher console probe now includes stage 9, an isolated experiment that attempts to connect to the `sm:` named port, constructs a `sm:RegisterClient` CMIF v0 request in the thread-local HIPC buffer, sends it synchronously, checks the response framing, and closes the returned session handle. The probe records the stage result in `ctx->args[6]`; a failure at stage 9 does not invalidate the earlier CPU-only stages.
+
+This is deliberately **not** treated as an implementation of Horizon service management. The SVC numbers used for `ConnectToNamedPort` (0x1f), `SendSyncRequest` (0x21), and `CloseHandle` (0x16) are reference ABI candidates, and the TLS/IPC layout plus `RegisterClient` request still require confirmation from an actual Switch 2 console run or trace. The code compiles against the pinned HBLauncher SDK, but no console execution result has been collected. See the probe README for the exact experimental boundary.
+
+The documentation update is commit `6cb40472fe35178d2d1be6a9dfe9fea2eaf6a95d`. Its CI run [#41147890940](https://github.com/patrickawsomeness1/nxnative/actions/runs/41147890940) has passed the HIPC boundary, native-module survey, and HBLauncher cross-build jobs; the iOS app job was still running at the time of this note. This does not change the status of retail NSO loading, native Switch 2 SVC/handle compatibility, or NVN2.
