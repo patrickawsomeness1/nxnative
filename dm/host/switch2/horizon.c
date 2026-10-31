@@ -2,6 +2,17 @@
 #include "hipc.h"
 #include <string.h>
 
+// Registry entries live in a public context structure, so do not trust their
+// fixed-size name arrays to contain a terminator before comparing them.
+static int nx_horizon_name_equal(const char *left, const char *right) {
+    if (!left || !right) return 0;
+    for (size_t i = 0; i < NX_HORIZON_MAX_NAME; ++i) {
+        if (left[i] != right[i]) return 0;
+        if (left[i] == '\\0') return 1;
+    }
+    return 0;
+}
+
 void nx_horizon_init(nx_horizon_context *ctx) {
     if (ctx) { memset(ctx, 0, sizeof(*ctx)); ctx->next_session_handle = 1; }
 }
@@ -18,7 +29,7 @@ nx_horizon_status nx_horizon_register_service(
     if (ctx->service_count > NX_HORIZON_MAX_SERVICES)
         return NX_HORIZON_E_CAPACITY;
     for (size_t i = 0; i < ctx->service_count; ++i)
-        if (strcmp(ctx->services[i].name, name) == 0) return NX_HORIZON_E_DUPLICATE;
+        if (nx_horizon_name_equal(ctx->services[i].name, name)) return NX_HORIZON_E_DUPLICATE;
     if (ctx->service_count >= NX_HORIZON_MAX_SERVICES) return NX_HORIZON_E_CAPACITY;
     nx_horizon_service *service = &ctx->services[ctx->service_count++];
     memcpy(service->name, name, len + 1);
@@ -39,7 +50,7 @@ nx_horizon_status nx_horizon_dispatch(
         return NX_HORIZON_E_CAPACITY;
     for (size_t i = 0; i < ctx->service_count; ++i) {
         nx_horizon_service *service = &ctx->services[i];
-        if (strcmp(service->name, service_name) != 0) continue;
+        if (!nx_horizon_name_equal(service->name, service_name)) continue;
         if (!service->dispatch) return NX_HORIZON_E_ARGUMENT;
         nx_horizon_status status = service->dispatch(
             service->opaque, command_id, request, request_size,
@@ -115,7 +126,7 @@ nx_horizon_status nx_horizon_open_session(
         return NX_HORIZON_E_CAPACITY;
     size_t service_index = ctx->service_count;
     for (size_t i = 0; i < ctx->service_count; ++i) {
-        if (strcmp(ctx->services[i].name, service_name) == 0) {
+        if (nx_horizon_name_equal(ctx->services[i].name, service_name)) {
             service_index = i;
             break;
         }
