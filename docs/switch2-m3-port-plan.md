@@ -14,6 +14,8 @@ The existing Horizon host is also not automatically a Switch 2 host. Loader meta
 
 The product is a **native ARM64 compatibility runtime**, not a full-system emulator or a replacement homebrew launcher. Follow nxnative's existing no-JIT design: rewrite guest code offline, embed its executable pages into the signed app's `__TEXT` segment, and use the iOS loader's `vm_remap` path to map those signed pages at the guest's expected addresses. Guest ARM64 code then executes directly on Apple CPU cores. Reuse the existing loader and build pipeline where the Switch 2 ABI permits; keep Switch 1 behaviour intact. Details: [native ARM64 runtime architecture](switch2-native-arm64-runtime.md).
 
+The iOS executable-memory and signing boundary is specified separately in [the Switch 2 iOS execution contract](switch2-ios-execution-contract.md). Treat that contract as a gate: a build-time signed-image transformation is required; imported bytes are never made executable through a runtime JIT or ad-hoc permission change.
+
 ## Proposed architecture
 
 Keep the existing Switch 1 path intact. Add a separately selectable Switch 2 path:
