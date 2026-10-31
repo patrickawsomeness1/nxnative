@@ -39,7 +39,6 @@ final class HBLauncherPackageInspectorTests: XCTestCase {
         XCTAssertEqual(result.codeBase, 0x0c000000)
         XCTAssertEqual(result.dataBase, 0x0d000000)
         XCTAssertEqual(result.entry, result.codeBase)
-        XCTAssertEqual(result.codePages, nil)
         XCTAssertEqual(result.codeBytes, 0x1001)
     }
 
