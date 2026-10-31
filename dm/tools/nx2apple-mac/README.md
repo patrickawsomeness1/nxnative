@@ -8,10 +8,20 @@ A native SwiftUI front end for the nxnative Switch 2 bring-up workflow.
 - Select a candidate file and identify common Switch package, content, metadata, filesystem, and executable extensions: NSP, XCI, NSZ, XCZ, NCA, NCZ, NRO, NSO, ELF, KIP/KIP1, NPDM, NACP, CNMT, RomFS, NAX, PFS0, HFS0, tickets, and certificates.
 - Inspect file signatures for PFS0, HFS0, NSO0, NRO0, KIP1, ELF, XCI header, and visible NCA2/NCA3 headers where the header is not encrypted.
 - Recognize common numbered NSP/XCI split-file parts by filename.
+- Bounds-check PFS0/HFS0 directory-table parsing in a dedicated Swift package, with tests for payload offsets, malformed ranges, path traversal, truncated headers, and unreasonable entry counts. This reads container metadata only; it does not decrypt or extract content.
 - Import an HBLauncher Native ABI 3 package folder (`manifest.json` plus `build/code.bin`, `build/data.bin`, and `build/report.json`); verify package identity, ABI, byte counts, and SHA-256 hashes before accepting it.
 - Generate the iOS Xcode project, archive the Metal/PAC/XOM diagnostic app, and export a development-signed IPA using the Mac's Xcode signing account.
 - List paired iPhone/iPad devices with `xcrun devicectl`.
 - Install the diagnostic app to a selected device by UDID.
+
+## Run the container parser tests
+
+```sh
+cd dm/tools/nx2apple-mac
+swift test
+```
+
+The macOS GitHub Actions workflow runs these tests before building the GUI.
 
 ## Build the Mac app
 
