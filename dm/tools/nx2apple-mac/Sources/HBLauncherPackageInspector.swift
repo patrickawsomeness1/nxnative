@@ -13,7 +13,7 @@ struct HBLauncherPackageSummary: Equatable {
     let dataSHA256: String
 }
 
-enum HBLauncherPackageError: Error, LocalizedError {
+enum HBLauncherPackageError: Error, LocalizedError, Equatable {
     case invalidJSON
     case incompatibleABI
     case invalidIdentity
