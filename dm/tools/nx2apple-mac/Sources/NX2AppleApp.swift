@@ -186,15 +186,13 @@ final class BuildController: ObservableObject {
                   let dataBase = parseAddress(dataBaseText),
                   let entry = parseAddress(entryText),
                   codeBase % 0x1000 == 0, dataBase % 0x1000 == 0,
-                  entry == codeBase,
-                  let codeEnd = UInt64(code.count).addingReportingOverflow(codeBase).partialValue as UInt64?,
-                  let dataEnd = UInt64(dataRegionBytes).addingReportingOverflow(dataBase).partialValue as UInt64? else {
+                  entry == codeBase else {
                 throw NSError(domain: "NX2Apple", code: 14, userInfo: [NSLocalizedDescriptionKey: "The package has invalid or unaligned fixed-address metadata."])
             }
-            let codeOverflow = UInt64(code.count).addingReportingOverflow(codeBase).overflow
-            let dataOverflow = UInt64(dataRegionBytes).addingReportingOverflow(dataBase).overflow
-            guard !codeOverflow, !dataOverflow,
-                  codeEnd <= dataBase || dataEnd <= codeBase else {
+            let codeRange = UInt64(code.count).addingReportingOverflow(codeBase)
+            let dataRange = UInt64(dataRegionBytes).addingReportingOverflow(dataBase)
+            guard !codeRange.overflow, !dataRange.overflow,
+                  codeRange.partialValue <= dataBase || dataRange.partialValue <= codeBase else {
                 throw NSError(domain: "NX2Apple", code: 15, userInfo: [NSLocalizedDescriptionKey: "The package code and data memory regions overlap or overflow."])
             }
             packageAssessment = "Verified HBLauncher ABI 3 package: \(report["id"] as? String ?? "unnamed"). Hashes, sizes, entry point, alignment, and memory regions match the report. Fixed bases: \(codeBaseText) / \(dataBaseText). Integrity validation only; Apple runtime is not implemented."
