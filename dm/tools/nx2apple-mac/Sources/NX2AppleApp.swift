@@ -124,7 +124,19 @@ final class BuildController: ObservableObject {
         ]
 
         if let detected = signatures[magic] {
-            gameAssessment = "File signature: \(detected). Full parsing/loading is not yet implemented."
+            if magic == "PFS0" || magic == "HFS0" {
+                do {
+                    let container = try Data(contentsOf: url, options: .mappedIfSafe)
+                    let summary = try SwitchContainerInspector.inspect(container)
+                    let names = summary.entries.prefix(12).map { "\($0.name) (\($0.size) bytes)" }.joined(separator: "\n")
+                    let remaining = max(0, summary.entries.count - 12)
+                    gameAssessment = "\(detected): parsed \(summary.entries.count) directory entries.\n\(names)\n\(remaining > 0 ? "... and \(remaining) more" : "")\nRead-only metadata inspection; extraction, decryption, installation, and execution are not implemented."
+                } catch {
+                    gameAssessment = "\(detected), but directory parsing failed: \(error.localizedDescription)"
+                }
+            } else {
+                gameAssessment = "File signature: \(detected). Full parsing/loading is not yet implemented."
+            }
         } else if let description = formats[ext] {
             gameAssessment = description
         } else if isSplitPackagePart {
