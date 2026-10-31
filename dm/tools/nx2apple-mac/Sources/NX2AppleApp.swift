@@ -118,8 +118,8 @@ final class BuildController: ObservableObject {
             "cnmt": "CNMT content metadata; referenced content still needs package processing.",
             "romfs": "RomFS filesystem data; not a standalone executable.",
             "nax": "NAX encrypted data; key handling and decryption are not implemented.",
-            "pfs0": "PFS0 filesystem/container; entry parsing is not implemented.",
-            "hfs0": "HFS0 filesystem/container; entry parsing is not implemented.",
+            "pfs0": "PFS0 filesystem/container; supported directory metadata can be inspected read-only.",
+            "hfs0": "HFS0 filesystem/container; supported directory metadata can be inspected read-only.",
             "npdm": "NPDM process metadata; not a standalone executable."
         ]
 
