@@ -9,7 +9,7 @@ let package = Package(
         .target(
             name: "SwitchContainerInspector",
             path: "Sources",
-            sources: ["SwitchContainerInspector.swift"]
+            sources: ["SwitchContainerInspector.swift", "HBLauncherPackageInspector.swift"]
         ),
         .testTarget(
             name: "SwitchContainerInspectorTests",
