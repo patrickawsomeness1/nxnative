@@ -61,14 +61,37 @@ final class BuildController: ObservableObject {
     func chooseGame(_ url: URL) {
         selectedGame = url.path
         let ext = url.pathExtension.lowercased()
-        switch ext {
-        case "nso", "nro", "elf":
-            gameAssessment = "Recognized homebrew/container candidate. nxnative can inspect some metadata, but the Switch 2 execution loader is not implemented; this file cannot currently be turned into a playable IPA."
-        case "nsp", "xci":
-            gameAssessment = "Retail package selected. Retail package decryption, key handling, content installation, and Switch 2 execution are not implemented. This app will not attempt to bypass encryption or DRM."
-        default:
-            gameAssessment = "File selected, but this format is not currently supported by the Switch 2 survey tools."
+        let fileName = url.lastPathComponent.lowercased()
+        let formats: [String: (String, String)] = [
+            "nsp": ("Nintendo Switch package", "PFS0 package container. Retail content is commonly encrypted; parsing, installation, and execution are not yet implemented."),
+            "xci": ("Nintendo Switch game-card image", "XCI game-card container. Parsing, secure-partition handling, and execution are not yet implemented."),
+            "nsz": ("Compressed NSP package", "NSZ is a compressed NSP-family package. Decompression and package parsing are not yet implemented."),
+            "xcz": ("Compressed XCI image", "XCZ is a compressed XCI-family image. Decompression and game-card parsing are not yet implemented."),
+            "nca": ("Nintendo Content Archive", "NCA content archive. Encrypted content handling, metadata interpretation, and loading are not yet implemented."),
+            "ncz": ("Compressed Nintendo Content Archive", "NCZ is a compressed NCA payload. Decompression and subsequent NCA processing are not yet implemented."),
+            "nro": ("Nintendo Switch homebrew executable", "NRO homebrew format recognized. A verified Switch 2 loader and runtime are not yet implemented."),
+            "nso": ("Nintendo Switch system/module executable", "NSO module recognized. The existing patcher is not a Switch 2 loader; native execution is not yet implemented."),
+            "elf": ("ELF executable/object", "ELF container recognized. CPU architecture, ABI, relocations, and runtime compatibility must be validated before execution."),
+            "kip": ("Horizon kernel initial process module", "KIP module recognized by extension only. Switch 2 kernel/module compatibility is not established."),
+            "kip1": ("Horizon kernel initial process module", "KIP1 module recognized by extension only. Switch 2 kernel/module compatibility is not established."),
+            "nacp": ("Application control metadata", "NACP metadata file recognized. It is metadata, not a directly launchable game executable."),
+            "nacp": ("Application control metadata", "NACP metadata file recognized. It is metadata, not a directly launchable game executable."),
+            "tik": ("Ticket metadata", "Ticket file recognized. NX2Apple will not bypass ticket checks or decrypt protected content."),
+            "cert": ("Certificate data", "Certificate file recognized as supporting package data; it is not a game executable."),
+            "cnmt": ("Content meta metadata", "CNMT metadata recognized. The referenced content and its dependencies still need supported package processing."),
+            "romfs": ("RomFS filesystem image", "RomFS data recognized. It is data, not a standalone executable."),
+            "nax": ("Nintendo encrypted archive data", "NAX-family encrypted data recognized by extension only. Key handling and decryption are not implemented."),
+            "pfs0": ("PFS0 filesystem/container", "PFS0 container recognized. Entry parsing and content execution are not yet implemented."),
+            "hfs0": ("HFS0 filesystem/container", "HFS0 container recognized. Entry parsing and content execution are not yet implemented.")
+        ]
+        if let item = formats[ext] {
+            gameAssessment = "\\(item.0): \\(item.1)"
+        } else if fileName.hasSuffix(".nsp.00") || fileName.hasSuffix(".xci.00") || fileName.range(of: #"\\.(nsp|xci)\\.\\d{2,3}$"#, options: .regularExpression) != nil {
+            gameAssessment = "Split Switch package part recognized by filename. All numbered parts are required; joining, validation, and package processing are not yet implemented."
+        } else {
+            gameAssessment = "Unknown or unsupported extension. The file is selected, but its format has not been identified; no execution is attempted."
         }
+        log = "Selected: \\(url.path)\\n\\(gameAssessment)"
     }
 
     func chooseHBXPackage(_ url: URL) {
