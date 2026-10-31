@@ -6,6 +6,7 @@ A native SwiftUI front end for the nxnative Switch 2 bring-up workflow.
 
 - Select an nxnative checkout.
 - Select a candidate homebrew/container file and show the current support boundary.
+- Import an HBLauncher Native ABI 3 package folder (`manifest.json` plus `build/code.bin`, `build/data.bin`, and `build/report.json`); verify package identity, ABI, byte counts, and SHA-256 hashes before accepting it.
 - Generate the iOS Xcode project, archive the Metal/PAC/XOM diagnostic app, and export a development-signed IPA using the Mac's Xcode signing account.
 - List paired iPhone/iPad devices with `xcrun devicectl`.
 - Install the diagnostic app to a selected device by UDID.
@@ -25,6 +26,6 @@ Select the NX2Apple scheme and build. For signing and installation, the Mac must
 
 ## Important current limitation
 
-This first GUI milestone builds and installs the **Switch2Bringup diagnostic app**, not a selected Switch 2 game. The existing Switch 1 NSO patcher explicitly refuses Switch 2 targets, and the Switch 2 native loader, retail/homebrew execution ABI, complete Horizon kernel/service transport, and NVN2-to-Metal renderer are not yet implemented. Selecting an .nso/.nro/.elf file only records it as a candidate; .nsp/.xci retail package decryption/content installation is not implemented. Do not interpret an IPA export as proof that a game can run.
+This first GUI milestone builds and installs the **Switch2Bringup diagnostic app**, not a selected Switch 2 game. The existing Switch 1 NSO patcher explicitly refuses Switch 2 targets, and the Switch 2 native loader, retail/homebrew execution ABI, complete Horizon kernel/service transport, and NVN2-to-Metal renderer are not yet implemented. Selecting an .nso/.nro/.elf file only records it as a candidate; an HBLauncher ABI 3 folder can now be integrity-checked, but it is not executed. The code/data images use fixed addresses and depend on the console launcher ABI, services, and graphics handoff; the Apple execution bridge is not implemented. .nsp/.xci retail package decryption/content installation is not implemented. Do not interpret an IPA export as proof that a game can run.
 
 The UI deliberately labels this boundary instead of producing a broken or misleading game IPA. Future milestones can replace the diagnostic build action with the verified native homebrew/game pipeline once the runtime exists.
