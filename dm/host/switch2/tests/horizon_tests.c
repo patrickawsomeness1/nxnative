@@ -24,6 +24,24 @@ int main(void) {
     assert(nx_horizon_register_service(&ctx, "sm:", NULL, echo_command) == NX_HORIZON_E_DUPLICATE);
     assert(nx_horizon_service_count(&ctx) == 1);
 
+    // Registry inputs and public context fields are treated as untrusted
+    // boundaries: reject unterminated names and corrupted counts safely.
+    char unterminated_name[NX_HORIZON_MAX_NAME];
+    memset(unterminated_name, 'x', sizeof(unterminated_name));
+    assert(nx_horizon_register_service(&ctx, unterminated_name, NULL,
+        echo_command) == NX_HORIZON_E_ARGUMENT);
+    nx_horizon_context corrupt = ctx;
+    corrupt.service_count = NX_HORIZON_MAX_SERVICES + 1u;
+    assert(nx_horizon_service_count(&corrupt) == 0);
+    uint32_t rejected_session = 123;
+    assert(nx_horizon_open_session(&corrupt, "sm:", &rejected_session) ==
+        NX_HORIZON_E_CAPACITY);
+    assert(rejected_session == 0);
+    size_t rejected_size = 99;
+    assert(nx_horizon_dispatch(&corrupt, "sm:", 7, NULL, 0, NULL, 0,
+        &rejected_size) == NX_HORIZON_E_CAPACITY);
+    assert(rejected_size == 0);
+
     const uint8_t input[] = {1, 2, 3, 4};
     uint8_t output[4] = {0};
     size_t output_size = 0;
