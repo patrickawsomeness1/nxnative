@@ -84,13 +84,13 @@ final class BuildController: ObservableObject {
             "hfs0": ("HFS0 filesystem/container", "HFS0 container recognized. Entry parsing and content execution are not yet implemented.")
         ]
         if let item = formats[ext] {
-            gameAssessment = "\\(item.0): \\(item.1)"
+            gameAssessment = "\(item.0): \(item.1)"
         } else if fileName.hasSuffix(".nsp.00") || fileName.hasSuffix(".xci.00") || fileName.range(of: #"\\.(nsp|xci)\\.\\d{2,3}$"#, options: .regularExpression) != nil {
             gameAssessment = "Split Switch package part recognized by filename. All numbered parts are required; joining, validation, and package processing are not yet implemented."
         } else {
             gameAssessment = "Unknown or unsupported extension. The file is selected, but its format has not been identified; no execution is attempted."
         }
-        log = "Selected: \\(url.path)\\n\\(gameAssessment)"
+        log = "Selected: \(url.path)\n\(gameAssessment)"
     }
 
     func chooseHBXPackage(_ url: URL) {
