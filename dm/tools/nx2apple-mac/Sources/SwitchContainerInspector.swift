@@ -35,7 +35,8 @@ enum SwitchContainerError: Error, LocalizedError {
 /// It never decrypts, extracts, modifies, or executes contained files.
 enum SwitchContainerInspector {
     static func inspect(_ data: Data, maximumEntries: UInt32 = 100_000) throws -> SwitchContainerSummary {
-        let bytes = [UInt8](data)
+        // Keep mapped file data mapped; do not duplicate multi-gigabyte containers in RAM.
+        let bytes = data
         guard bytes.count >= 0x10 else { throw SwitchContainerError.truncated }
         let magic = String(bytes: bytes[0..<4], encoding: .ascii) ?? ""
         let entrySize: UInt64
