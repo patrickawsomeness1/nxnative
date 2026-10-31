@@ -15,6 +15,7 @@ struct NX2AppleApp: App {
 final class BuildController: ObservableObject {
     @Published var repository = ""
     @Published var selectedGame = ""
+    @Published var selectedPackage = ""
     @Published var deviceID = ""
     @Published var teamID = ""
     @Published var log = "Choose your nxnative repository folder to get started."
@@ -51,9 +52,9 @@ final class BuildController: ObservableObject {
         repository = url.path
         log = "Repository: \(url.path)\nChecking required project files…"
         let iosSpec = url.appending(path: "dm/tests/switch2/ios/Project.yml")
-        let tool = url.appending(path: "dm/tools/patch_nso.py")
+        let guiSpec = url.appending(path: "dm/tools/nx2apple-mac/project.yml")
         if FileManager.default.fileExists(atPath: iosSpec.path),
-           FileManager.default.fileExists(atPath: tool.path) {
+           FileManager.default.fileExists(atPath: guiSpec.path) {
             log += "\nRepository structure looks valid."
         } else {
             log += "\nMissing expected nxnative files. Select the repository root."
@@ -150,7 +151,7 @@ final class BuildController: ObservableObject {
     func chooseHBXPackage(_ url: URL) {
         let hasScope = url.startAccessingSecurityScopedResource()
         defer { if hasScope { url.stopAccessingSecurityScopedResource() } }
-        selectedGame = url.path
+        selectedPackage = url.path
         let manifestURL = url.appending(path: "manifest.json")
         let buildURL = url.appending(path: "build")
         let reportURL = buildURL.appending(path: "report.json")
@@ -343,7 +344,7 @@ struct DashboardView: View {
             GroupBox("3 · Import native homebrew package") {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text(controller.selectedGame.isEmpty ? "No package folder selected" : controller.selectedGame)
+                        Text(controller.selectedPackage.isEmpty ? "No package folder selected" : controller.selectedPackage)
                             .lineLimit(1).truncationMode(.middle)
                         Spacer()
                         Button("Choose package folder…") { showPackagePicker = true }
