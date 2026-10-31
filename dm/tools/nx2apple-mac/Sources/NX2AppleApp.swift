@@ -15,6 +15,7 @@ final class BuildController: ObservableObject {
     @Published var repository = ""
     @Published var selectedGame = ""
     @Published var deviceID = ""
+    @Published var teamID = ""
     @Published var log = "Choose your nxnative repository folder to get started."
     @Published var busy = false
     @Published var gameAssessment = "No game selected"
@@ -42,6 +43,7 @@ final class BuildController: ObservableObject {
     }
 
     func chooseRepository(_ url: URL) {
+        _ = url.startAccessingSecurityScopedResource()
         repository = url.path
         log = "Repository: \(url.path)\nChecking required project files…"
         let iosSpec = url.appending(path: "dm/tests/switch2/ios/Project.yml")
@@ -86,7 +88,7 @@ final class BuildController: ObservableObject {
                 "-project", "dm/tests/switch2/ios/Switch2Bringup.xcodeproj",
                 "-scheme", "Switch2Bringup", "-configuration", "Release",
                 "-destination", "generic/platform=iOS",
-                "-archivePath", archive.path, "-allowProvisioningUpdates", "archive"
+                "-archivePath", archive.path, "-allowProvisioningUpdates", "DEVELOPMENT_TEAM=\\(teamID)", "archive"
             ], cwd: root)
             log += "\nExporting signed development IPA (requires Xcode signing account and provisioning)…"
             let options = build.appending(path: "ExportOptions.plist")
@@ -95,7 +97,7 @@ final class BuildController: ObservableObject {
             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
             <plist version="1.0"><dict>
               <key>method</key><string>development</string>
-              <key>signingStyle</key><string>automatic</string>
+              <key>signingStyle</key><string>automatic</string>\n              <key>teamID</key><string>\\(teamID)</string>
               <key>destination</key><string>export</string>
             </dict></plist>
             """
@@ -135,7 +137,7 @@ final class BuildController: ObservableObject {
             log = try await run("/usr/bin/xcrun", [
                 "devicectl", "device", "install", "app",
                 "--device", deviceID.trimmingCharacters(in: .whitespaces),
-                URL(fileURLWithPath: ipaPath).deletingLastPathComponent().appending(path: "Switch2Bringup.app").path
+                URL(fileURLWithPath: repository).appending(path: "build/NX2Apple/Switch2Bringup.xcarchive/Products/Applications/Switch2Bringup.app").path
             ])
             log += "\nInstall command completed."
         } catch { log = "Install failed: \(error.localizedDescription)" }
