@@ -200,6 +200,8 @@ int main(void) {
 
     // Malformed and truncated messages fail before exposing any guest pointers.
     assert(nx_hipc_parse_request(hipc, 7, &hipc_view) == NX_HIPC_E_BUFFER);
+    assert(hipc_view.data_words == NULL && hipc_view.cmif_request == NULL);
+    assert(hipc_view.num_data_words == 0 && hipc_view.data_size == 0);
     memset(hipc, 0, sizeof(hipc));
     hipc_word0 = NX_HIPC_CMIF_REQUEST;
     hipc_word1 = 1u << 10; // Reserved receive-static mode.
@@ -213,6 +215,8 @@ int main(void) {
     memcpy(hipc + 16, &sfci, 4);
     memcpy(hipc + 20, &version1, 4); // type 4 requires CMIF v0.
     assert(nx_hipc_parse_request(hipc, 36, &hipc_view) == NX_HIPC_E_HEADER);
+    assert(hipc_view.data_words == NULL && hipc_view.cmif_request == NULL);
+    assert(hipc_view.num_data_words == 0 && hipc_view.data_size == 0);
 
     // Deterministic malformed-message stress test. The parser must never
     // dereference guest addresses or read beyond the bounded TLS message.
