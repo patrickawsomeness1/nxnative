@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import CryptoKit
 
 @main
 struct NX2AppleApp: App {
@@ -19,6 +20,7 @@ final class BuildController: ObservableObject {
     @Published var log = "Choose your nxnative repository folder to get started."
     @Published var busy = false
     @Published var gameAssessment = "No game selected"
+    @Published var packageAssessment = "No HBLauncher package selected"
     @Published var ipaPath = ""
 
     private func run(_ executable: String, _ arguments: [String], cwd: URL? = nil) async throws -> String {
@@ -66,6 +68,51 @@ final class BuildController: ObservableObject {
             gameAssessment = "Retail package selected. Retail package decryption, key handling, content installation, and Switch 2 execution are not implemented. This app will not attempt to bypass encryption or DRM."
         default:
             gameAssessment = "File selected, but this format is not currently supported by the Switch 2 survey tools."
+        }
+    }
+
+    func chooseHBXPackage(_ url: URL) {
+        _ = url.startAccessingSecurityScopedResource()
+        selectedGame = url.path
+        let manifestURL = url.appending(path: "manifest.json")
+        let buildURL = url.appending(path: "build")
+        let reportURL = buildURL.appending(path: "report.json")
+        let codeURL = buildURL.appending(path: "code.bin")
+        let dataURL = buildURL.appending(path: "data.bin")
+        do {
+            let manifestData = try Data(contentsOf: manifestURL)
+            let reportData = try Data(contentsOf: reportURL)
+            guard let manifest = try JSONSerialization.jsonObject(with: manifestData) as? [String: Any],
+                  let report = try JSONSerialization.jsonObject(with: reportData) as? [String: Any] else {
+                throw NSError(domain: "NX2Apple", code: 10, userInfo: [NSLocalizedDescriptionKey: "Package manifest or build report is not valid JSON."])
+            }
+            guard (report["format"] as? String) == "hblauncher-native-app/1",
+                  (report["abi"] as? Int) == 3,
+                  (manifest["abi"] as? Int) == 3,
+                  (manifest["id"] as? String) == (report["id"] as? String),
+                  (manifest["kind"] as? String) == "native",
+                  (report["kind"] as? String) == "native" else {
+                throw NSError(domain: "NX2Apple", code: 11, userInfo: [NSLocalizedDescriptionKey: "This is not a matching HBLauncher Native ABI 3 package."])
+            }
+            let code = try Data(contentsOf: codeURL, options: .mappedIfSafe)
+            let data = try Data(contentsOf: dataURL, options: .mappedIfSafe)
+            let codeHash = SHA256.hash(data: code).map { String(format: "%02x", $0) }.joined()
+            let dataHash = SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+            guard code.count == (report["codeBytes"] as? Int),
+                  data.count == (report["dataBytes"] as? Int),
+                  codeHash == (report["codeSha256"] as? String),
+                  dataHash == (report["dataSha256"] as? String) else {
+                throw NSError(domain: "NX2Apple", code: 12, userInfo: [NSLocalizedDescriptionKey: "The code/data files do not match the SDK build report. Rebuild the package before importing it."])
+            }
+            let codeBase = report["codeBase"] as? String ?? "unknown"
+            let dataBase = report["dataBase"] as? String ?? "unknown"
+            packageAssessment = "Verified HBLauncher ABI 3 package: \\(report["id"] as? String ?? "unnamed"). Code/data sizes and SHA-256 hashes match. Fixed bases: \\(codeBase) / \\(dataBase). This validates package integrity only; the Switch 2 runtime and Apple execution bridge are not yet implemented."
+            gameAssessment = packageAssessment
+            log = "Imported HBLauncher package: \\(url.path)\\n\\(packageAssessment)"
+        } catch {
+            packageAssessment = "Package validation failed: \\(error.localizedDescription)"
+            gameAssessment = packageAssessment
+            log = packageAssessment
         }
     }
 
@@ -160,6 +207,7 @@ struct DashboardView: View {
     @StateObject private var controller = BuildController()
     @State private var showRepoPicker = false
     @State private var showGamePicker = false
+    @State private var showPackagePicker = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -189,6 +237,17 @@ struct DashboardView: View {
                         Button("Select file…") { showGamePicker = true }
                     }
                     Text(controller.gameAssessment).font(.callout).foregroundStyle(.secondary)
+                }.padding(6)
+            }
+            GroupBox("3 · Import native homebrew package") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(controller.selectedGame.isEmpty ? "No package folder selected" : controller.selectedGame)
+                            .lineLimit(1).truncationMode(.middle)
+                        Spacer()
+                        Button("Choose package folder…") { showPackagePicker = true }
+                    }
+                    Text(controller.packageAssessment).font(.callout).foregroundStyle(.secondary)
                 }.padding(6)
             }
             GroupBox("3 · Build and install") {
@@ -230,6 +289,9 @@ struct DashboardView: View {
         }
         .fileImporter(isPresented: $showGamePicker, allowedContentTypes: [.item], allowsMultipleSelection: false) { result in
             if case .success(let urls) = result, let url = urls.first { controller.chooseGame(url) }
+        }
+        .fileImporter(isPresented: $showPackagePicker, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
+            if case .success(let urls) = result, let url = urls.first { controller.chooseHBXPackage(url) }
         }
     }
 }
