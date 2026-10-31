@@ -1,0 +1,23 @@
+name: NX2Apple
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+targets:
+  NX2Apple:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: org.nxnative.nx2apple
+        PRODUCT_NAME: NX2Apple
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: NX2Apple
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        CODE_SIGN_STYLE: Automatic
