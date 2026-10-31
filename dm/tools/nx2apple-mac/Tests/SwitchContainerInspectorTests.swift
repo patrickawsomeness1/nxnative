@@ -61,6 +61,19 @@ final class SwitchContainerInspectorTests: XCTestCase {
         XCTAssertThrowsError(try SwitchContainerInspector.inspect(data))
     }
 
+    func testRejectsFilenameOffsetOutsideStringTable() {
+        var bytes = Array(fixture(magic: "PFS0"))
+        let nameOffset = 0x10 + 16
+        bytes[nameOffset] = 0xff
+        XCTAssertThrowsError(try SwitchContainerInspector.inspect(Data(bytes)))
+    }
+
+    func testRejectsFilenameWithoutTerminatingNul() {
+        var bytes = Array(fixture(magic: "PFS0"))
+        bytes[0x30] = 0x78
+        XCTAssertThrowsError(try SwitchContainerInspector.inspect(Data(bytes)))
+    }
+
     func testRejectsExcessiveEntryCount() {
         var bytes = Array("PFS0".utf8) + [0,0,0,0,0,0,0,0] + Array(repeating: 0, count: 4)
         bytes[4] = 0xff; bytes[5] = 0xff; bytes[6] = 0xff; bytes[7] = 0x7f
