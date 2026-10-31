@@ -85,7 +85,7 @@ final class BuildController: ObservableObject {
         ]
         if let item = formats[ext] {
             gameAssessment = "\(item.0): \(item.1)"
-        } else if fileName.hasSuffix(".nsp.00") || fileName.hasSuffix(".xci.00") || fileName.range(of: #"\\.(nsp|xci)\\.\\d{2,3}$"#, options: .regularExpression) != nil {
+        } else if { let parts = fileName.split(separator: "."); return parts.count >= 2 && ["nsp", "xci"].contains(String(parts[parts.count - 2])) && (2...3).contains(parts.last?.count ?? 0) && (parts.last?.allSatisfy { $0.isNumber } ?? false) }() {
             gameAssessment = "Split Switch package part recognized by filename. All numbered parts are required; joining, validation, and package processing are not yet implemented."
         } else {
             gameAssessment = "Unknown or unsupported extension. The file is selected, but its format has not been identified; no execution is attempted."
