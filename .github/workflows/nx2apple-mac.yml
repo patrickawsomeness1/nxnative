@@ -1,0 +1,36 @@
+name: NX2Apple macOS GUI
+on:
+  push:
+    branches: [switch2-m3-bringup]
+    paths:
+      - "dm/tools/nx2apple-mac/**"
+      - ".github/workflows/nx2apple-mac.yml"
+  pull_request:
+    paths:
+      - "dm/tools/nx2apple-mac/**"
+      - ".github/workflows/nx2apple-mac.yml"
+  workflow_dispatch:
+jobs:
+  build-macos-gui:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: dm/tools/nx2apple-mac
+        run: xcodegen generate --spec project.yml
+      - name: Build GUI app
+        run: xcodebuild -project dm/tools/nx2apple-mac/NX2Apple.xcodeproj -scheme NX2Apple -configuration Release -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
+      - name: Package app
+        run: |
+          mkdir -p build/NX2Apple-mac
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -path '*/Build/Products/Release/NX2Apple.app' -print -quit)
+          test -n "$APP"
+          ditto "$APP" build/NX2Apple-mac/NX2Apple.app
+          ditto -c -k --sequesterRsrc --keepParent build/NX2Apple-mac/NX2Apple.app build/NX2Apple-mac.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NX2Apple-macOS-GUI
+          path: build/NX2Apple-mac.zip
+          if-no-files-found: error
