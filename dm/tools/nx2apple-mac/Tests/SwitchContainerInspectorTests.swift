@@ -26,13 +26,18 @@ final class SwitchContainerInspectorTests: XCTestCase {
     func testParsesPFS0DirectoryAndEntryBounds() throws {
         let result = try SwitchContainerInspector.inspect(fixture(magic: "PFS0"))
         XCTAssertEqual(result.format, "PFS0")
-        XCTAssertEqual(result.entries, [SwitchContainerEntry(name: "test.nca", offset: 0x29, size: 3)])
+        XCTAssertEqual(result.entries, [SwitchContainerEntry(name: "test.nca", offset: 0x31, size: 3)])
     }
 
     func testParsesHFS0Directory() throws {
         let result = try SwitchContainerInspector.inspect(fixture(magic: "HFS0", entrySize: 0x40))
         XCTAssertEqual(result.format, "HFS0")
         XCTAssertEqual(result.entries.first?.name, "test.nca")
+    }
+
+    func testPFS0PayloadStartsAfterFullStringTable() throws {
+        let result = try SwitchContainerInspector.inspect(fixture(magic: "PFS0", name: "a"))
+        XCTAssertEqual(result.entries.first?.offset, 0x2a)
     }
 
     func testRejectsTruncatedHeader() {
