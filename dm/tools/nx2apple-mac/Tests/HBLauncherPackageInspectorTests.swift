@@ -100,6 +100,45 @@ final class HBLauncherPackageInspectorTests: XCTestCase {
         }
     }
 
+    func testRejectsModifiedDataHash() {
+        let f = fixture()
+        XCTAssertThrowsError(try inspect((f.0, f.1, f.2, Data([9, 9, 9])))) {
+            XCTAssertEqual($0 as? HBLauncherPackageError, .invalidImageHashes)
+        }
+    }
+
+    func testRejectsMalformedManifestJSON() {
+        let f = fixture()
+        XCTAssertThrowsError(try HBLauncherPackageInspector.inspect(
+            manifestData: Data("{".utf8), reportData: f.1, code: f.2, data: f.3
+        )) {
+            XCTAssertEqual($0 as? HBLauncherPackageError, .invalidJSON)
+        }
+    }
+
+    func testRejectsMalformedReportJSON() {
+        let f = fixture()
+        XCTAssertThrowsError(try HBLauncherPackageInspector.inspect(
+            manifestData: f.0, reportData: Data("[]".utf8), code: f.2, data: f.3
+        )) {
+            XCTAssertEqual($0 as? HBLauncherPackageError, .invalidJSON)
+        }
+    }
+
+    func testRejectsDataRegionAddressOverflow() {
+        let f = fixture(dataBase: "0xfffffffffffff000")
+        XCTAssertThrowsError(try inspect(f)) {
+            XCTAssertEqual($0 as? HBLauncherPackageError, .overlappingRegions)
+        }
+    }
+
+    func testRejectsIncorrectCodePageCount() {
+        let f = fixture(codePages: 1)
+        XCTAssertThrowsError(try inspect(f)) {
+            XCTAssertEqual($0 as? HBLauncherPackageError, .invalidAddressMetadata)
+        }
+    }
+
     func testRejectsUndersizedDataRegion() {
         let f = fixture(dataRegionBytes: 2)
         XCTAssertThrowsError(try inspect(f)) {
